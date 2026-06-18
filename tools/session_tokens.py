@@ -27,6 +27,20 @@ from pathlib import Path
 DEFAULT_LOG_PATH = Path.home() / '.claude' / 'logs' / 'sessions.md'
 DIAGNOSTIC_LOG_PATH = Path.home() / '.claude' / 'logs' / 'session-tokens.log'
 
+# Sessions whose cwd contains any of these fragments are skipped — they are
+# subagent spawns, worktrees, or temp dirs that don't produce session-level
+# knowledge worth indexing. Override by setting CMS_SKIP_CWD (colon-separated).
+_DEFAULT_SKIP_CWD_FRAGMENTS = (
+  '/tmp/', '/-tmp-', '/cache/agent-spawn', '/cache/agent-workstream',
+  'superset-worktrees', 'agent-spawn-worktrees',
+)
+SKIP_CWD_FRAGMENTS: tuple[str, ...] = tuple(
+  f for f in os.environ.get('CMS_SKIP_CWD', '').split(':') if f
+) or _DEFAULT_SKIP_CWD_FRAGMENTS
+
+# Sessions with fewer real user turns than this are drive-bys and skipped.
+MIN_USER_TURNS = 2
+
 # Counter fields summed into the log, plus the non-counter fields
 # current transcript records carry. A field outside this set means the
 # usage schema changed and the counters may be silently wrong.
@@ -232,6 +246,22 @@ def first_user_message(transcript_path: Path, limit: int = 80) -> str | None:
   return None
 
 
+def count_user_turns(transcript_path: Path) -> int:
+  """Real user turns in the transcript — injected meta records excluded."""
+  count = 0
+  try:
+    for line in transcript_path.read_text().splitlines():
+      try:
+        record: object = json.loads(line)
+      except json.JSONDecodeError:
+        continue
+      if isinstance(record, Mapping) and record.get('type') == 'user' and not record.get('isMeta'):
+        count += 1
+  except OSError:
+    pass
+  return count
+
+
 def unwrapped_entry(
   project: str, session_id: str, new_line: str, entry_date: str, descriptor: str
 ) -> str:
@@ -259,6 +289,10 @@ def write_log(log_path: Path, text: str) -> None:
 
 def record_session_end(payload: Mapping[str, object], log_path: Path) -> None:
   """Count the ended session's tokens and record them in the log."""
+  cwd = payload.get('cwd', '')
+  if isinstance(cwd, str) and any(frag in cwd for frag in SKIP_CWD_FRAGMENTS):
+    return
+
   transcript_value = payload.get('transcript_path')
   if not isinstance(transcript_value, str):
     raise ValueError(f'payload has no transcript_path: {dict(payload)}')
@@ -267,6 +301,9 @@ def record_session_end(payload: Mapping[str, object], log_path: Path) -> None:
   session_id = (
     session_value if isinstance(session_value, str) else transcript_path.stem
   )
+
+  if count_user_turns(transcript_path) < MIN_USER_TURNS:
+    return
 
   totals = summed_usage(session_transcript_paths(transcript_path))
   new_line = tokens_line(totals)

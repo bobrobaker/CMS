@@ -1,32 +1,48 @@
 ---
 name: wrap-session
-description: Wrap the current session into the global session archive — a rich, embedding-friendly summary file plus a one-line index entry — so a half-remembered future query ("I remember working on X") can be found by progressive disclosure. Use when the user invokes /wrap-session, says "wrap this session" / "archive this session", or is ending a session worth being able to find again. Summarizes only from context already in the window — never re-reads the transcript. NOT for a decision-ready resume of in-flight work (that's /handoff).
+description: Wrap a session into the global session archive — a rich, embedding-friendly summary file plus a one-line index entry — so a half-remembered future query ("I remember working on X") can be found by progressive disclosure. Live mode (no argument): summarizes from the current context window. Backfill mode (/wrap-session <session-id>): reads the transcript to wrap a missed past session. Use when the user invokes /wrap-session [session-id], says "wrap this session" / "archive this session" / "backfill session <id>", or is ending a session worth being able to find again. NOT for a decision-ready resume of in-flight work (that's /handoff).
 ---
 
 # wrap-session
 
-You are leaving a findable trace of THIS session in the global archive
-(`~/.claude/logs/`, shared across every project). Governing principle:
-**summarize only from what is already in your context window.** The prompt cache
-is warm; re-reading the transcript spends tokens to re-derive what you already
-hold. Capture what this session was *about*, for a reader who only half-remembers
-it later.
+Two modes depending on whether an argument was passed:
+
+**Live mode** (no argument): you are wrapping the current session. Governing
+principle: **summarize only from what is already in your context window.** The
+prompt cache is warm; re-reading the transcript spends tokens to re-derive what
+you already hold.
+
+**Backfill mode** (`/wrap-session <session-id-or-path>`): the live window was
+missed; wrap from the transcript instead. Quality will be lower than a live wrap
+(compacted content is unrecoverable; only text turns survive extraction). Use for
+important missed sessions, not every drive-by.
 
 Two writes — the rich summary file (rung 2 of the disclosure ladder) and the
 one-line index entry in `sessions.md` (rung 1). **Fail open:** if a step's input
 is missing, write what you can. An index line with no token counts still beats no
 trace.
 
-1. **Marker + provisional counts.** Get the session marker and provisional token
-   line from the session-token helper in `--print` mode. Find it at
-   `$CLAUDE_PROJECT_DIR/tools/session_tokens.py` and run `python3 <path> --print`. It prints a
-   `<!-- session: <id> -->` marker and a `tokens:` line. This session's id is
-   `$CLAUDE_CODE_SESSION_ID` (the harness sets it per session) — the source of
-   truth, because newest-by-mtime misidentifies the session when another runs in
-   the same cwd concurrently. If neither helper path exists there is no SessionEnd
-   hook to finalize counts here: take the marker id from `$CLAUDE_CODE_SESSION_ID`
-   (only if it is unset, fall back to the newest
-   `~/.claude/projects/<cwd-slug>/<id>.jsonl`) and skip the counts.
+1. **Identify the session and establish the content source.**
+
+   *Live mode:* Get the session marker and provisional token line from the
+   session-token helper in `--print` mode. Find it at
+   `$CLAUDE_PROJECT_DIR/tools/session_tokens.py` and run `python3 <path> --print`.
+   It prints a `<!-- session: <id> -->` marker and a `tokens:` line. This
+   session's id is `$CLAUDE_CODE_SESSION_ID` (the harness sets it per session) —
+   the source of truth, because newest-by-mtime misidentifies the session when
+   another runs in the same cwd concurrently. If neither helper path exists, take
+   the marker id from `$CLAUDE_CODE_SESSION_ID` (fall back to the newest
+   `~/.claude/projects/<cwd-slug>/<id>.jsonl`) and skip the counts. Content source
+   is the context window — do not re-read the transcript.
+
+   *Backfill mode:* The argument is either a session ID or a `.jsonl` path.
+   - If it looks like a path: use it directly; session ID is the filename stem.
+   - If it looks like an ID: `find ~/.claude/projects -name "<id>.jsonl" 2>/dev/null | head -1`
+     to locate the transcript.
+   - Run `python3 $CLAUDE_PROJECT_DIR/tools/extract_session.py <jsonl-path> --cap 40000`
+     and read its output — this is your content source instead of the context window.
+   - There is no live `tokens:` line to write; the SessionEnd hook already wrote
+     one in the floor entry. Preserve it when updating the index entry in step 3.
 
 2. **Write the summary file** to
    `~/.claude/logs/sessions/<YYYY-MM-DD>-<project>-<session-id>.md` (create the
@@ -56,11 +72,12 @@ trace.
    ```
 
    The folded scalars (`>-`) keep free-text titles/abstracts valid YAML without
-   escaping; `source: wrap-session` marks this as an authoritative wrap (vs a
-   `source: backfill` stub). Write it from context you still hold. Do not re-read
-   the transcript or the files — if a detail has fallen out of context, say so
-   rather than re-fetching it. The summary is a point-in-time snapshot; a reader
-   treats its claims as true *as of that date*, not now.
+   escaping; `source: wrap-session` applies in both modes — you ran the skill
+   explicitly. *Live mode:* write from context you still hold; do not re-read the
+   transcript or files — if a detail has fallen out of context, say so rather than
+   re-fetching it. *Backfill mode:* write from the extracted trace you read in
+   step 1. The summary is a point-in-time snapshot; a reader treats its claims as
+   true *as of that date*, not now.
 
    **The `files:` list is the staleness-capture signal** — the files this session
    changed, so a later retrieval can warn that the summary may be stale if they
