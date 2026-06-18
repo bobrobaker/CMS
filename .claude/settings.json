@@ -11,6 +11,16 @@
         ]
       }
     ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/autoflag.py\""
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "hooks": [

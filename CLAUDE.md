@@ -45,6 +45,15 @@ use that machinery or improve it.
 - **Rate what fires.** When an injected takeaway helped or was noise, say so:
   `monition rate <firing-id> helpful|noise`. Sparse honest labels beat dense dutiful ones
   — this is the eval data the firing engine will train against.
+- **Self-flag flag-worthy moments (tier 1 of the autoflagger).** When a response of yours
+  hits a flag-worthy moment — you admit an error, a gotcha recurs, or a "we should make
+  this a rule" realization lands — append a `/flag` entry inline (don't wait to be asked,
+  don't break flow). You are the judge here: full context, free, more reliable than any
+  keyword match. `tools/autoflag.py` (the Stop hook) is only the tier-2 backstop for
+  admitted-error phrasing you skip; don't rely on it as the primary path. Routing:
+  admitted error / would-have-prevented-this → `GOVERNANCE`; reusable trigger lesson →
+  `MONITION`; large costly failure → `POSTMORTEM`; otherwise → `GENERAL`. `/mine-session`
+  drains them all at wrap (step 0a).
 
 ## Workflow
 

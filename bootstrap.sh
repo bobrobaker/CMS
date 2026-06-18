@@ -198,7 +198,7 @@ apply_to_target() {
   cp -R "$src/.claude/skills/." "$dst/.claude/skills/"
   log "copied .claude/skills/"
   # Portable machinery only — NOT cms_lint.py (the incubator's own linter).
-  for t in craft_reminder.py session_tokens.py extract_session.py lint_skeleton.py; do
+  for t in craft_reminder.py autoflag.py session_tokens.py extract_session.py lint_skeleton.py; do
     [ -f "$src/tools/$t" ] && cp "$src/tools/$t" "$dst/tools/$t"
   done
   # The skeleton becomes the target's own linter; extend it in the marked slot.
