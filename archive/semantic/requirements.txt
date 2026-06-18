@@ -1,0 +1,7 @@
+# Semantic-recall layer deps. Only this rung earns a venv (the capture + grep
+# paths stay stdlib-and-files). sentence-transformers pulls torch (~2GB) and
+# downloads the MiniLM model (~80MB, cached under ~/.cache/huggingface) on first
+# use — a one-time setup, not a per-run cost.
+chromadb>=1.5
+sentence-transformers>=2.2
+mcp>=1.0

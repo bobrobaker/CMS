@@ -1,0 +1,52 @@
+# CMS — working on CMS itself
+
+This repo is a **forkable reference implementation** of a context-management system (see
+`README.md`): `bootstrap.sh` installs the machinery live in a fork. Sessions here either
+use that machinery or improve it.
+
+## Map
+
+- `method/` — the knowledge base: one doc per discipline, each stating its trigger.
+  Loaded on demand, never all at once.
+- `.claude/skills/` — the shared skills, single-sourced here and symlinked into the
+  author's `~/.claude` (`bootstrap --link-global`); editing one edits both.
+- `tools/` — the runnable machinery: the linter, the craft-reminder and token hooks, the
+  session extractor.
+- `starter/` — per-project identity templates (`CLAUDE.md`, `road.md`, `debt.md`, the
+  bucket-generator prompt). Every starter file is a live template: `{{PLACEHOLDERS}}` mark
+  the per-project slots.
+- `landing/` — the zero-config landing-zone fallback; `$CMS_LANDING_ZONE` overrides it.
+- `docs/DESIGN.md` — architecture and roadmap. `tools/cms_lint.py` — this repo's linter.
+- `monition/` — this repo's Monition store (SQLite default, Dolt optional; semantics in
+  `method/takeaway-store.md`; machinery is the installed Monition module). Hooks inject
+  matching rows as you work; mine new ones with `/mine-session`.
+
+## Rules
+
+- **Write for an external reader, from line one.** No source-project provenance in
+  `method/`, `starter/`, or skill doc bodies — the linter WARNs on known provenance
+  strings. Worked examples are neutral or web-dev flavored.
+- **Read budget:** grep before reading; `grep -n "^##"` before any markdown range read;
+  load only the `method/` docs the task touches.
+- **Machinery edits follow method.** Before editing a skill or `starter/` template that a
+  `method/` doc governs, read that doc (the linter can't check this; you must).
+- **Never codify silently.** Behavior-changing edits to `method/` docs, skills, or
+  `starter/` templates are proposed and accepted before writing. Downstream lessons mirror
+  back only domain-stripped, through the same gate.
+- **Design calls leave a record.** Project-internal design decisions land as date-slug
+  files in `docs/decisions/` (the call plus its why), so a later session inherits the
+  reasoning instead of relitigating it. Cross-cutting calls that outlive this repo go to
+  the landing zone's `decisions/`.
+- **Mirror-back sweep.** At the start of a session here (or on request), scan downstream
+  forks/projects for queued upstream candidates (each appends to its own
+  `handoffs/upstream-candidates.md`) and propose them through the consent gate; a landed
+  candidate is removed from its downstream queue in the same pass. (Where "downstream"
+  lives is environment-specific — e.g. sibling repos under your projects directory.)
+- **Rate what fires.** When an injected takeaway helped or was noise, say so:
+  `monition rate <firing-id> helpful|noise`. Sparse honest labels beat dense dutiful ones
+  — this is the eval data the firing engine will train against.
+
+## Workflow
+
+Pre-commit runs `tools/cms_lint.py` — ERROR blocks, WARN advises. Arm once on a fresh
+clone: `git config core.hooksPath .githooks` (or run `./bootstrap.sh`).

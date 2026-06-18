@@ -1,0 +1,54 @@
+# {{PROJECT_NAME}} Roadmap
+
+## 1. How to use this doc
+
+Purpose: orient sessions around project phase, history, next work, and bounded
+implementation surfaces.
+
+Current phase marker:
+
+`<----- Ongoing phase ----->`
+
+A **phase** is a high-level deliverable with stable interfaces. A **workstream** is a
+refinable effort inside a phase. A **bucket** is a bounded implementation slice,
+usually sharing files, invariants, or tests.
+
+Each phase states: deliverable, surfaces, durable design decisions, file/doc changes,
+validation, token estimate, and exit criteria. Keep details high-level enough to start
+a refinement conversation, not enough to implement directly.
+
+---
+
+## 2. Phase roadmap
+
+### Phase 1 — {{PHASE_1_NAME}}
+
+`<----- Ongoing phase ----->`
+
+**Status:** not started.
+
+**Deliverable:** {{PHASE_1_DELIVERABLE}}
+
+**Surfaces:** {{PHASE_1_SURFACES}}
+
+**Design:**
+
+- {{PHASE_1_DESIGN_DECISIONS}}
+
+**File/doc changes:** {{PHASE_1_FILES}}
+
+**Validation:** {{PHASE_1_VALIDATION}}
+
+**Estimate:** {{PHASE_1_TOKEN_ESTIMATE}}
+
+**Exit:** {{PHASE_1_EXIT_CRITERIA}}
+
+---
+
+### Phase 2 — {{PHASE_2_NAME}}
+
+**Status:** sketched; refine when Phase 1 exits.
+
+**Deliverable:** {{PHASE_2_DELIVERABLE}}
+
+**Exit:** {{PHASE_2_EXIT_CRITERIA}}

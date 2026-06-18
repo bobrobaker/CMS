@@ -1,0 +1,34 @@
+---
+name: flag
+description: Mid-session flag for mine-session — mark something worth capturing as a monition row, governance change, or postmortem candidate without breaking flow. Use when the user invokes /flag [note] [--label monition|governance|postmortem], says "flag this", "make a note of this for mine-session", or "this should be a monition". NOT for immediate codification (that's /codify).
+---
+
+# flag
+
+You are capturing a mid-session observation so mine-session can act on it at wrap time.
+
+## What to do
+
+1. **Parse the invocation.** The user may supply:
+   - A note (free text describing what to flag)
+   - `--label monition` — candidate trigger row
+   - `--label governance` — candidate CLAUDE.md rule or always-on artifact
+   - `--label postmortem` — warrants a full `/postmortem` analysis; the incident was large or costly
+   - No label — general seed; mine-session decides routing
+
+2. **If the note is thin or absent**, synthesize it from the immediate conversation context — what just happened that the user wants flagged? State what you're capturing and confirm it before writing.
+
+3. **Append to `~/.claude/session-flags.md`** in this format:
+   ```
+   ## [LABEL] <one-line summary>
+   > <note or synthesized context>
+   > Flagged: <ISO date>
+   ```
+   Where `[LABEL]` is `MONITION`, `GOVERNANCE`, `POSTMORTEM`, or `GENERAL`. Create the file if absent.
+
+4. **Confirm to the user** in one line: what was flagged and under which label. Don't interrupt flow — no headers, no summary sections.
+
+## Anti-goals
+
+- Don't route immediately to /codify or /postmortem unless the user explicitly asks — the flag is a lightweight bookmark, not an action.
+- Don't ask clarifying questions if you can infer the intent from context.

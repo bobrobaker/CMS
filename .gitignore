@@ -1,0 +1,14 @@
+# The Monition store is per-project, personal data — firings are session telemetry.
+# It stays local and is never published: a fork's bootstrap runs `monition init` to
+# create a fresh store. (Applies to any repo that adopts monition, not just this one.)
+monition/.dolt/
+monition/store.db
+monition/dump.sql
+
+# Python bytecode and the semantic-layer venv (machine-local, ~2GB).
+__pycache__/
+*.pyc
+.venv/
+
+# Session/working residue — handoffs are local state, not public content.
+handoffs/

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Tier-1 enforcement for CMS itself.
+# Arm once per clone: git config core.hooksPath .githooks
+ROOT="$(git rev-parse --show-toplevel)"
+python3 "$ROOT/tools/cms_lint.py" || exit 1
+exit 0

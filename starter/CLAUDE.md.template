@@ -1,0 +1,117 @@
+# {{PROJECT_NAME}}
+
+{{PROJECT_GOAL_PARAGRAPH}}
+
+## Map
+
+{{ARCHITECTURE_MAP}}
+<!-- ~10 lines max: the dirs/surfaces a session needs to orient. Update when surfaces
+     change; this is the always-on layer, so every line here is paid for every session. -->
+
+## Context hygiene
+
+- Grep for symbols, fields, constants, and call sites before reading any file.
+- Structure-scan before any markdown range read: `grep -n "^##" <file>.md` first, then
+  bounded reads of only the needed sections. Applies to all docs, not just code.
+- Reads over ~150 lines require a stated reason; prefer one complete function/class
+  range over multiple partial reads.
+- Separate required from conditional reads up front; read only files the change touches.
+- Don't re-read what grep or prior output already answered.
+- Constrain repo-wide greps to source extensions (e.g. `--include="*.{{SRC_EXT}}"`).
+<!-- FULL PROFILE, once a docs index exists — uncomment and wire the search tool:
+- Use the docs search tool for open-ended why/how questions (rationale, decisions,
+  history) against docs/; grep for exact tokens; skip both when the path is known.
+-->
+
+## Working here
+
+- Validation: `{{VALIDATION_CMD}}`
+- Pre-commit linter: ERROR blocks, WARN advises (`tools/lint.py`). Arm once on a fresh
+  clone: `git config core.hooksPath .githooks`.
+- **Never codify silently.** Rule and convention changes are proposed and accepted
+  before writing — use `/codify`.
+- **Design calls leave a record.** Project-internal design decisions land as
+  date-slug files in `docs/decisions/` — the call plus its why — so a later session
+  inherits the reasoning instead of relitigating it. Cross-cutting calls that outlive
+  the project go to your portfolio-level decision store.
+- Wrapping up mid-task: `/handoff` writes a decision-ready handoff to `handoffs/`.
+
+## Intake guard
+
+When a build request is material-shaped ("extract / consolidate / clean up X") but names
+no moment of use, stop before building and get the **day-one user story** ("when I do X,
+Y happens") and the **anti-goal** (what it must NOT be). Material-shaped asks default to
+docs-about-the-thing instead of the thing; for multi-session builds, offer `/grill-me`.
+
+## Engineering defaults
+
+Language-agnostic; this project's own conventions override. Fail loud, not silently —
+surface unexpected state; keep error handling narrow and put diagnostic context in the
+message; use enums/constants for bounded value sets; names should communicate purpose;
+extract for clarity but don't abstract ahead of real reuse.
+
+## Execution discipline
+
+- **Disagreement and pushback**: never silently execute an approach believed to be
+  mistaken. Raise concerns at planning time, calibrated by consequence: a preference →
+  note in one sentence and proceed; likely rework or hard-to-reverse choice → stop and
+  ask; confident the approach breaks something → don't execute, explain and propose an
+  alternative.
+- **Effort–expectation mismatch**: when a task proves disproportionately hard relative to
+  what the user seems to expect, stop and surface the discrepancy rather than pushing
+  through. The likely cause is a broken premise. Realign first.
+- **After two failed attempts**: stop and diagnose the root cause before trying a third —
+  don't rerun unchanged commands or iterate patch variations. Present the fix and name
+  whether it addresses the root cause or only a symptom.
+- **Review before committing**: when a durable chunk is done, review it end-to-end before
+  committing. Run a test or linter when its result changes your next step — not as a
+  reflex.
+- **Verify load-bearing claims**: a "shared / reused / same-as / subset / core" statement
+  is true only if the call graph makes it so — verify structurally, never nominally.
+
+## Subagent discipline
+
+For non-trivial Agent tool calls (research, multi-step investigation, design work), end
+the prompt with: "End your response with a `## Takeaways` block: decisions made, gotchas
+hit, lessons worth keeping." Subagent transcripts are not visible to the main session —
+only the return value is — so without this, reasoning that surfaced lessons is lost.
+
+## Communication
+
+- **Context before questions**: before asking the user to decide anything that rests on
+  context they haven't seen, present that context and end the turn; ask in a following turn.
+- **Concision**: surface what the reader needs to act on or understand; cut the rest.
+- **Visibility during a long stretch**: before going heads-down, post a one-line "here's
+  what I'm about to do," then surface findings-oriented status at each checkpoint. "Found
+  X, which points to Y, so I'm now checking Z" signals; "Reading file X" does not.
+- **Technology currency**: for questions about current best-in-class tools, models, or
+  libraries, run a web research call before recommending — training data may be a year or
+  more stale.
+- **Don't write predictably stale content**: when a statement tracks a moving target
+  (versions, prices, counts), point at the source of truth or leave it out.
+
+## Context routing
+
+In a repo with context-management machinery (`docs/decisions/`, `/handoff`,
+`/wrap-session`, `/codify`), durable knowledge goes to that machinery rather than harness
+auto-memory. Route by shape: in-flight resumable context → `/handoff`; findable session
+history → `/wrap-session`; rule or convention → `/codify`; design call plus its why →
+`docs/decisions/`. In a bare repo with none of this machinery, harness auto-memory is the
+right home.
+
+<!-- FULL PROFILE:
+## Dispatch
+
+- The roadmap is `docs/road.md`; work descends roadmap → workstream → bucket
+  (`docs/workstreams/`). Find the active workstream with
+  `grep -r "^Progress:" docs/workstreams/ --include=workstream.md`.
+- `/dispatch` turns a phase discussion into a workstream + buckets, or executes the
+  next bucket per the workstream's execution protocol.
+
+## Tech-debt
+
+- After a logical chunk, pass over the functions you just edited and append any deferred
+  work to `docs/debt.md` (`path:symbol — observation (why deferred)`). Not the roadmap
+  or `docs/decisions/`. `/dispatch` surfaces shelf items whose files the next bucket
+  touches, to fold in.
+-->
