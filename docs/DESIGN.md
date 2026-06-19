@@ -68,12 +68,16 @@ assembled from tiers.
   `/postmortem`, `/concern-review`) mine; `/codify` routes the lesson to its home (a
   Monition row, a `method/` doc, a `CLAUDE.md` rule, a file-local gotcha); matched rows
   inject as context and the linter/hooks fire mechanically.
-- **The takeaway store** — data in `monition/` (this repo's own Monition store; the
-  reviewable text snapshot is `monition/dump.sql`); semantics in
-  `method/takeaway-store.md`. Load-bearing invariants: **trigger is data** (each row
-  carries `trigger_kind` + `trigger_spec`; executors are dumb) and **every disclosure is
-  logged + ratable** (the `firings` table is the eval substrate the firing engine trains
-  against). Hooks call the guarded `monition` CLI and fail-open when it's absent.
+- **The takeaway store** — rows + firings live in a single cross-repo **hub**
+  (Dolt-backed for us) at `$CMS_LANDING_ZONE/monition`; host repos join it via `monition
+  instrument` and keep **no per-repo store** (the former per-repo `monition/` dirs were
+  retired in the v6 cutover — see `docs/decisions/2026-06-19-retire-per-repo-stores-and-reference-exhibit.md`).
+  A standalone forker with no hub configured still gets its own SQLite `monition/` store.
+  Semantics in `method/takeaway-store.md`. Load-bearing invariants: **trigger is data**
+  (each row carries `trigger_kind` + `trigger_spec`; executors are dumb) and **every
+  disclosure is logged + ratable** (the `firings` table is the eval substrate the firing
+  engine trains against). Hooks call the guarded `monition` CLI and fail-open when it's
+  absent.
 - **Lesson routing** — `method/lesson-routing.md`: ordered destination tests deciding
   whether a mined lesson becomes a store row or a governance-surface edit. Evals are the
   linter for semantic artifacts.
@@ -106,6 +110,16 @@ evidence, never built speculatively.
   over the store's `firings` data, replacing hand-tuned `trigger_spec`s and the manual
   rate-and-tighten loop with learned firing decisions. Collection is live; the engine is
   gated on accumulated honest ratings.
+- **Store-stays-local hygiene** — the store (hub for us; per-repo for a standalone forker)
+  stays local and is never published. Two follow-ups remain on the standalone/forker path:
+  `bootstrap.sh` apply-to-target still hardcodes a pre-commit step that git-tracks the store
+  dump, and `monition init` still advertises the same; align both with the store-stays-local
+  default so a freshly bootstrapped repo ignores its store, with dump-tracking left as an
+  explicit opt-in. (Our hub deliberately keeps a tracked `dump.sql` in the private
+  landing-zone repo for offsite backup — that's the opt-in, not the default.) Open sub-question: where a *public*-repo project's store gets backed up — since
+  it's gitignored, git no longer backs it up, so a private destination is decided per
+  project. (Verified safe meanwhile: the published module bundles no store data, so
+  installing Monition cannot leak anyone's firings.)
 
 ## Porting rules (for anything that enters `method/` or the shared machinery)
 

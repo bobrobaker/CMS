@@ -29,9 +29,9 @@ use that machinery or improve it.
   surface* only: the `monition/` store is **not** part of it. The store is
   private-but-versioned working memory mined from real sessions, so rows may carry
   machine-local paths and personal detail (the linter's provenance check scans only
-  `method`/`payload`). Keep a row's transferable lesson legible on its own so a fork
-  inheriting `dump.sql` still benefits where a local path won't resolve — but don't
-  sanitize rows the way teaching docs are sanitized.
+  `method`/`payload`). Keep a row's transferable lesson legible on its own so it still
+  benefits when the store is carried to another machine or fork where a local path
+  won't resolve — but don't sanitize rows the way teaching docs are sanitized.
 - **Read budget:** grep before reading; `grep -n "^##"` before any markdown range read;
   load only the `method/` docs the task touches.
 - **Machinery edits follow method.** Before editing a skill or `starter/` template that a

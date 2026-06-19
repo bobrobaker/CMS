@@ -27,8 +27,8 @@ future behavior, so the gate is absolute: **never write before explicit acceptan
      protocol), a hook, a prompt, a linter, or a governance surface named in CLAUDE.md
      §Map. Procedure changes land here. A destination with its own admission rules
      (caps, evidence gates) keeps them.
-   - **Describable trigger, no owner** — a takeaway row in the store (or a `lessons.md`
-     block where there's no store). Also the default when evidence is thin.
+   - **Describable trigger, no owner** — a takeaway row in the store (Monition is a
+     declared dependency, always present). Also the default when evidence is thin.
    - **Every session** — a CLAUDE.md line, only if it earns being paid every session.
    - **File-local** — a one-line gotcha next to the code it protects.
 

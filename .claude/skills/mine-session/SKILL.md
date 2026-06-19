@@ -15,7 +15,7 @@ You are mining this session for takeaways. The store's semantics live in
    - Surface this session's flags first, then orphans. `POSTMORTEM` flags are high-priority — do not mine past them; ask whether to invoke `/postmortem` now or defer. `MONITION`/`GOVERNANCE` are pre-routed seeds. `GENERAL` joins the normal mining review.
    - Delete only the files you actually drained (`rm`). **Fail open:** absent directory, unreadable file, or unreadable registry → skip that file silently (when in doubt, do NOT delete).
 
-0b. **Scan for admitted mistakes.** Before the rating pass, review the session for any moment where Claude explicitly admitted to an error — especially assertions made without verification that turned out to be wrong ("I was wrong about X", "I should have checked", "I asserted X without verifying"). Each such moment is a candidate seed for a governance change: flag it for routing in the mining pass. The question is always: *what would have prevented this class of mistake?*
+0b. **Scan for admitted mistakes.** Before the rating pass, review the session for any moment where Claude explicitly admitted to an error — especially assertions made without verification that turned out to be wrong ("I was wrong about X", "I should have checked", "I asserted X without verifying"). Each such moment is a candidate seed for a governance change: flag it for routing in the mining pass. The question is always: *what would have prevented this class of mistake?* (The `autoflag.py` Stop hook is the mechanical mirror of this scan — it regex-catches the same admitted-error class live and writes a `GOVERNANCE` flag, so step 0a may already hold some.)
 
 0c. **Rate what fired (the eval pass) — run this first, before mining.** The
    fire/suppress gate trains on rated firings, and fire-time rating collects ~none (a
@@ -71,9 +71,10 @@ You are mining this session for takeaways. The store's semantics live in
    workaround), `source` (session/commit).
 4. **Show the proposed rows and get acceptance before inserting** (consent gate).
 5. Insert accepted rows (`monition add …`), then snapshot the store:
-   `monition commit -m "mine: <session topic>"`, and carry the dump into git:
-   `monition dump && git add monition/dump.sql` **before** `git commit` — a bare
-   commit with nothing staged aborts even though pre-commit stages the dump.
+   `monition commit -m "mine: <session topic>"`. The store is the hub at the landing
+   zone (`MONITION_STORE`), gitignored and unpublished — that Dolt commit *is* its
+   version control, so there is nothing to stage into this repo's git. Any working-tree
+   `git commit` of code/docs is separate from the store snapshot.
 6. **Routing a domain-free lesson — CMS is the upstream, so don't queue it.** A
    `--mirror candidate` row waits for a sweep that pulls it *up*; CMS has no upstream.
    Decide now instead: if the lesson would help a *fork* (it survives domain-stripping),
