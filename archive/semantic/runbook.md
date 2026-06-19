@@ -17,7 +17,7 @@ this is the fuzzy-memory path. Both write the same retrievals log
 ## Setup (one-time)
 
 ```bash
-cd ~/projects/CMS/archive/semantic
+cd ~/.claude/cms/archive/semantic   # the dotfile anchor (bootstrap --link-global); clone-location-independent
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python3 index.py --force                 # first full build (~minutes on CPU)

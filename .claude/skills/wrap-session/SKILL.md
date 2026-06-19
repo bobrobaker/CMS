@@ -22,11 +22,18 @@ one-line index entry in `sessions.md` (rung 1). **Fail open:** if a step's input
 is missing, write what you can. An index line with no token counts still beats no
 trace.
 
+**Capture tooling lives globally**, not in the current repo: the helpers below
+(`session_tokens.py`, `extract_session.py`) operate on the global archive, so they
+resolve through the dotfile anchor `~/.claude/cms/tools/` (a symlink to the canonical
+CMS clone, created by `bootstrap --link-global`). Below, **`<tools>`** means the first
+of `~/.claude/cms/tools/` or `$CLAUDE_PROJECT_DIR/tools/` that exists — the latter only
+when you are working inside the CMS clone itself and never linked.
+
 1. **Identify the session and establish the content source.**
 
    *Live mode:* Get the session marker and provisional token line from the
    session-token helper in `--print` mode. Find it at
-   `$CLAUDE_PROJECT_DIR/tools/session_tokens.py` and run `python3 <path> --print`.
+   `<tools>/session_tokens.py` and run `python3 <path> --print`.
    It prints a `<!-- session: <id> -->` marker and a `tokens:` line. This
    session's id is `$CLAUDE_CODE_SESSION_ID` (the harness sets it per session) —
    the source of truth, because newest-by-mtime misidentifies the session when
@@ -39,7 +46,7 @@ trace.
    - If it looks like a path: use it directly; session ID is the filename stem.
    - If it looks like an ID: `find ~/.claude/projects -name "<id>.jsonl" 2>/dev/null | head -1`
      to locate the transcript.
-   - Run `python3 $CLAUDE_PROJECT_DIR/tools/extract_session.py <jsonl-path> --cap 40000`
+   - Run `python3 <tools>/extract_session.py <jsonl-path> --cap 40000`
      and read its output — this is your content source instead of the context window.
    - There is no live `tokens:` line to write; the SessionEnd hook already wrote
      one in the floor entry. Preserve it when updating the index entry in step 3.
@@ -83,7 +90,7 @@ trace.
    changed, so a later retrieval can warn that the summary may be stale if they
    have moved since. Unlike the prose, get it *deterministically*, not from
    memory: run the trace extractor in `--files` mode over this session's
-   transcript. Find it at `$CLAUDE_PROJECT_DIR/tools/extract_session.py` and run
+   transcript. Find it at `<tools>/extract_session.py` and run
    `python3 <path> --files ~/.claude/projects/<cwd-slug>/<session-id>.jsonl`. Paste its output
    under `files:` as a YAML list (one `  - <path>` per line), keeping `files:` the
    last frontmatter key. Fail open: if the extractor errors or lists nothing, omit

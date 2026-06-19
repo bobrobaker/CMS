@@ -78,9 +78,13 @@ timestamp it against the substrate.
 
 ## Wiring & ownership
 
-- Capture ships per-project (`/wrap-session` + `extract_session.py`, whose `--files`
-  mode is the staleness-capture source); the index/summary store and retrieval are
-  shared infrastructure across projects.
+- The archive is global, so its tooling is too: capture (`/wrap-session` +
+  `extract_session.py`, whose `--files` mode is the staleness-capture source), the
+  index/summary store, and retrieval are all shared across projects. The tooling is
+  single-sourced in the CMS clone and resolved through the `~/.claude/cms` dotfile
+  anchor — never copied per project (see
+  `docs/decisions/2026-06-18-session-archive-tooling-global-anchor.md`). Only the
+  per-project hooks and the linter ship per repo.
 - The archive discipline is canonical here; the retrievals-log row format is owned by
   the Monition module (version-bumped there, cited here).
 - The eval-gated grep-vs-semantic retrieval router stays deferred — gated on

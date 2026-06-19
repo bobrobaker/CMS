@@ -1,5 +1,11 @@
 # 2026-06-17 · CMS is a forkable reference implementation, not a generator
 
+> **Refined in part (2026-06-18, see [`2026-06-18-session-archive-tooling-global-anchor.md`](2026-06-18-session-archive-tooling-global-anchor.md)):**
+> this decision single-sourced shared machinery and symlinked the skills, but left the
+> session-archive *tooling* on the old copy-per-project path. The follow-up applies the
+> same single-source rule to that tooling via a `~/.claude/cms` dotfile anchor. The
+> forkable model itself is unchanged.
+
 **Decision.** Discard the generator model. CMS no longer interviews you and *copies*
 machinery into a fresh `~/projects/<name>` (`/instantiate`). It is a **forkable
 reference implementation** of the context-management system: you fork or clone it, run

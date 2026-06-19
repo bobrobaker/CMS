@@ -161,6 +161,16 @@ link_global() {
   else
     log "linked $linked skill(s); nothing to back up"
   fi
+
+  # Dotfile anchor for the global session-archive tooling. The archive is global
+  # (one corpus under ~/.claude/logs/), so its tooling resolves through this stable
+  # path — not $CLAUDE_PROJECT_DIR (the current repo) and not a hardcoded clone path.
+  # The /wrap-session skill, the global SessionEnd hook, and the semantic MCP server
+  # all reference ~/.claude/cms/...; repoint this symlink to move the canonical clone.
+  ln -sfn "$root" "$HOME/.claude/cms"
+  log "anchored session-archive tooling: ~/.claude/cms -> $root"
+  log "  (point the global SessionEnd hook + semantic MCP server at ~/.claude/cms/…;"
+  log "   see archive/semantic/runbook.md for the MCP registration)"
 }
 
 # ---- modes ----------------------------------------------------------------
@@ -197,8 +207,10 @@ apply_to_target() {
   mkdir -p "$dst/.claude/skills" "$dst/.githooks" "$dst/tools"
   cp -R "$src/.claude/skills/." "$dst/.claude/skills/"
   log "copied .claude/skills/"
-  # Portable machinery only — NOT cms_lint.py (the incubator's own linter).
-  for t in craft_reminder.py autoflag.py session_tokens.py extract_session.py lint_skeleton.py; do
+  # Per-project machinery only. NOT cms_lint.py (CMS's own linter), and NOT the
+  # session-archive tooling (session_tokens.py / extract_session.py): the archive is
+  # global, so its tooling resolves through the ~/.claude/cms anchor, not a per-repo copy.
+  for t in craft_reminder.py autoflag.py lint_skeleton.py; do
     [ -f "$src/tools/$t" ] && cp "$src/tools/$t" "$dst/tools/$t"
   done
   # The skeleton becomes the target's own linter; extend it in the marked slot.
