@@ -8,11 +8,12 @@ description: End-of-session mining pass — review this session for reusable les
 You are mining this session for takeaways. The store's semantics live in
 `method/takeaway-store.md` — read it before your first run in a session.
 
-0a. **Drain session flags — run this before anything else.** Check `~/.claude/session-flags.md`. If it exists and is non-empty:
-   - Surface each flag as a candidate. `POSTMORTEM` flags are high-priority — do not mine past them; surface to the user and ask whether to invoke `/postmortem` now or defer.
-   - `MONITION` and `GOVERNANCE` flags feed directly into the mining pass below as pre-identified candidates — treat them as already-routed seeds.
-   - `GENERAL` flags join the normal mining review.
-   - Clear the file after draining (truncate to empty). **Fail open:** if the file is absent or unreadable, skip silently.
+0a. **Drain session flags — run this before anything else.** Flags live per-session under `~/.claude/session-flags/<session_id>.md`, in a **machine-global directory shared by every concurrent Claude session**. Drain by *liveness* — never the whole directory, or you steal in-flight flags out from under another running session (the concurrency failure this scoping exists to prevent):
+   - **This session's file** (`$CLAUDE_CODE_SESSION_ID.md`) — always in the worklist.
+   - **Other files** — include one ONLY if its session is no longer live (a genuine orphan from a closed, un-mined session). A session is live if `~/.claude/sessions/*.json` holds a record whose `sessionId` equals the filename's id. **Never drain a file whose session is still live** — those flags belong to an active concurrent session. When liveness can't be determined (registry unreadable), treat as live and leave it.
+   - Build the worklist: `ls ~/.claude/session-flags/*.md`, then for each, keep it iff its id == `$CLAUDE_CODE_SESSION_ID` OR its id is absent from the live registry. Read the kept, non-empty files.
+   - Surface this session's flags first, then orphans. `POSTMORTEM` flags are high-priority — do not mine past them; ask whether to invoke `/postmortem` now or defer. `MONITION`/`GOVERNANCE` are pre-routed seeds. `GENERAL` joins the normal mining review.
+   - Delete only the files you actually drained (`rm`). **Fail open:** absent directory, unreadable file, or unreadable registry → skip that file silently (when in doubt, do NOT delete).
 
 0b. **Scan for admitted mistakes.** Before the rating pass, review the session for any moment where Claude explicitly admitted to an error — especially assertions made without verification that turned out to be wrong ("I was wrong about X", "I should have checked", "I asserted X without verifying"). Each such moment is a candidate seed for a governance change: flag it for routing in the mining pass. The question is always: *what would have prevented this class of mistake?*
 

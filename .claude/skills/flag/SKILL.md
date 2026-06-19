@@ -18,13 +18,16 @@ You are capturing a mid-session observation so mine-session can act on it at wra
 
 2. **If the note is thin or absent**, synthesize it from the immediate conversation context — what just happened that the user wants flagged? State what you're capturing and confirm it before writing.
 
-3. **Append to `~/.claude/session-flags.md`** in this format:
-   ```
+3. **Append to this session's flag file** — `~/.claude/session-flags/$CLAUDE_CODE_SESSION_ID.md`. Flags are per-session so `/statusline` can count this session's flags and `/mine-session` can attribute them (it drains this session's file plus any from *dead* sessions, so nothing is orphaned — but never a live concurrent session's file). Run a bash append so the session id resolves from the env; fill `LABEL`, the summary, the note, and the date as literal text before running:
+   ```bash
+   d=~/.claude/session-flags; mkdir -p "$d"
+   cat >> "$d/${CLAUDE_CODE_SESSION_ID:-unknown}.md" <<'EOF'
    ## [LABEL] <one-line summary>
    > <note or synthesized context>
    > Flagged: <ISO date>
+   EOF
    ```
-   Where `[LABEL]` is `MONITION`, `GOVERNANCE`, `POSTMORTEM`, or `GENERAL`. Create the file if absent.
+   Where `[LABEL]` is `MONITION`, `GOVERNANCE`, `POSTMORTEM`, or `GENERAL`. If `$CLAUDE_CODE_SESSION_ID` is unset the file falls back to `unknown.md`, which `/mine-session`'s directory sweep still drains.
 
 4. **Confirm to the user** in one line: what was flagged and under which label. Don't interrupt flow — no headers, no summary sections.
 

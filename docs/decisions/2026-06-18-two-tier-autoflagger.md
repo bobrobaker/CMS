@@ -1,5 +1,11 @@
 # 2026-06-18 · Two-tier autoflagger — agent-as-judge, hook-as-backstop
 
+> **Superseded in part (2026-06-18, see `2026-06-18-per-session-flags.md`):** the flag
+> store moved from the single global file `~/.claude/session-flags.md` named below to
+> per-session files `~/.claude/session-flags/<session_id>.md`. The two-tier design itself
+> is unchanged; only the storage path differs. Path references in this doc record the
+> original design.
+
 **Decision.** Auto-capture flag-worthy moments into `~/.claude/session-flags.md` (the
 file `/flag` writes and `/mine-session` drains) via two tiers:
 

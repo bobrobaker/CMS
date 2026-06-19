@@ -16,7 +16,9 @@ Accept any of:
 - **Inline** — the user describes the failure in the invocation.
 - **File pointer** — a path to a handoff, audit, or lessons doc; read it in full.
 - **Flagged** — no argument after `/postmortem` → drain the most recent `POSTMORTEM`
-  entry from `~/.claude/session-flags.md` (where `/flag` parks them).
+  entry from the per-session flag store `~/.claude/session-flags/` (where `/flag` parks
+  them). Check this session's file first (`$CLAUDE_CODE_SESSION_ID.md`), then any other
+  file in that directory if `/mine-session` routed one here from an earlier session.
 
 If the input is thin, ask one question: *what was the costly outcome?*
 
@@ -81,4 +83,5 @@ Verify the prescription would actually change behavior.
 Route the accepted artifact: a CLAUDE.md rule → propose the edit via `/codify`; a monition
 row → draft the `monition add` invocation for `/mine-session` to execute; a skill or
 template change → edit the target file directly (with consent). If this postmortem was
-flag-sourced, clear its entry from `~/.claude/session-flags.md`.
+flag-sourced, clear its entry from the per-session file under `~/.claude/session-flags/`
+that holds it.

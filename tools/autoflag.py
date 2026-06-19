@@ -5,8 +5,9 @@ Tier 1 is the agent itself — a CLAUDE.md rule has it self-flag flag-worthy mom
 inline (the semantic judgment, free, with full context). This script is tier 2: a
 mechanical net that catches one unambiguous, keyword-detectable class the agent might
 skip — an *admitted error* in the just-finished response (the same pattern
-`mine-session` step 0b hunts). It appends a GOVERNANCE flag to the same
-`~/.claude/session-flags.md` that `/flag` writes and `/mine-session` drains.
+`mine-session` step 0b hunts). It appends a GOVERNANCE flag to this session's file
+under `~/.claude/session-flags/<session_id>.md` — the same per-session store `/flag`
+writes and `/mine-session` drains (mine-session sweeps the whole directory).
 
 No LLM call: regex only. Three load-bearing properties, mirroring craft_reminder.py —
 fires at most once per matched snippet (a backstop that repeats becomes noise), never
@@ -29,7 +30,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-FLAGS_FILE = Path.home() / ".claude" / "session-flags.md"
+FLAGS_DIR = Path.home() / ".claude" / "session-flags"
 
 # Admitted-error patterns — kept tight to avoid false positives. Each marks a moment
 # mine-session step 0b would treat as a governance-change candidate.
@@ -129,9 +130,10 @@ def main():
         f"candidate. Verify it's real before acting on it.\n"
         f"> Flagged: {date.today().isoformat()}\n"
     )
+    flags_file = FLAGS_DIR / f"{session}.md"
     try:
-        FLAGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(FLAGS_FILE, "a", encoding="utf-8") as fh:
+        FLAGS_DIR.mkdir(parents=True, exist_ok=True)
+        with open(flags_file, "a", encoding="utf-8") as fh:
             fh.write(entry)
     except Exception:
         return  # fail open
