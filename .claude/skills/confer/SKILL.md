@@ -125,8 +125,11 @@ four-part opener does real convergence work — keep all four in Turn 1.
 - **Close-out:** when a thread resolves, **land the outcome first** — the decision goes into
   the owning repo's spec/roadmap/decision shelf and any durable lesson is codified — *then*
   move the thread to `handoffs/archive/` (add `archived: YYYY-MM-DD`). It is provenance: kept
-  for the audit trail, never cited as evidence. Close-out is a one-side action — if the file
-  is already gone, the other side closed it; verify the resolution landed, don't re-stamp.
+  for the audit trail, never cited as evidence. **The side that writes the `## Resolution`
+  archives it in the same close-out — don't punt the archive to the other side.** A
+  resolved-but-unarchived thread reads as "still open / still awaiting a reply" and leaves
+  "who archives?" ambiguous. Close-out is a one-side action — if the file is already gone,
+  the other side closed it; verify the resolution landed, don't re-stamp.
 - **Staleness:** a thread open ≳1 week means the decision stopped mattering or was made
   out-of-band — confirm with the user, record the actual outcome, archive.
 - **One thread per decision.** A new disagreement on a different seam gets a new thread.

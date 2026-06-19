@@ -50,3 +50,8 @@ and the correction. Consult when **revising** a rule. The distilled, firing form
   rebutting; treat a freshly-absent cited authority like a torn write, not proof the other
   side is wrong. (Generalizes the torn-write gotcha from the *turn body* to *cited
   evidence*.)
+- **2026-06-19** — CMS resolved a thread (wrote `## Resolution`) but wrote "the other side
+  may archive this" and left it in `handoffs/`, unarchived. It sat resolved-but-unarchived;
+  the user reported the other session seemed to be "still waiting for a reply." Fix: the
+  side that writes the Resolution archives it in the *same* close-out — punting the archive
+  leaves the thread reading as open and the "who archives?" question unowned.
