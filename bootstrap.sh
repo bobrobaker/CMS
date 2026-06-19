@@ -108,15 +108,35 @@ arm_hooks() {
 
 init_store() {
   local root="$1"
-  if [ -d "$root/monition/.dolt" ] || [ -f "$root/monition/store.db" ]; then
-    log "store already present in monition/ — skipping init"
-    return
+  # Resolve a configured hub: $MONITION_STORE wins, else CMS maps $CMS_LANDING_ZONE.
+  # A hub means "join this repo to the shared store" — instrument only, no per-repo store
+  # (the fused `monition init` would litter a dead store the hub-wired hooks then ignore).
+  local hub=""
+  if [ -n "${MONITION_STORE:-}" ]; then
+    hub="$MONITION_STORE"
+  elif [ -n "${CMS_LANDING_ZONE:-}" ]; then
+    hub="$CMS_LANDING_ZONE/monition"
   fi
-  log "creating a fresh store (SQLite) in monition/"
-  monition init --root "$root"
-  if [ -f "$root/monition/dump.sql" ]; then
-    log "note: monition/dump.sql is a reviewable snapshot of the reference store;"
-    log "      it is not auto-loaded — your store starts empty."
+
+  if [ -n "$hub" ]; then
+    if [ -d "$hub/.dolt" ] || [ -f "$hub/store.db" ]; then
+      log "hub store present at $hub — joining this repo to it (no per-repo store)"
+    else
+      # SQLite default: the forker adoption-barrier call stands. A Dolt hub (ours) is
+      # created out-of-band (`monition init-store <hub> --dolt`); bootstrap never forces dolt.
+      log "creating the shared hub store at $hub (SQLite default)"
+      monition init-store "$hub"
+    fi
+    monition instrument --root "$root" --store "$hub"
+    log "instrumented $root at the hub (MONITION_STORE -> $hub; no per-repo store)"
+  else
+    # Standalone / forker: one repo, its own SQLite store + hooks (the fused composition).
+    if [ -d "$root/monition/.dolt" ] || [ -f "$root/monition/store.db" ]; then
+      log "store already present in monition/ — skipping init"
+      return
+    fi
+    log "creating a fresh per-repo store (SQLite) in monition/"
+    monition init --root "$root"
   fi
 }
 

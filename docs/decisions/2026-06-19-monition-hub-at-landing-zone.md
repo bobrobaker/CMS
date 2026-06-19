@@ -13,6 +13,13 @@ CMS owns standing up the hub and populating `MONITION_STORE`:
   path is not recorded here.
 - *For forks:* `bootstrap.sh` is the fork path — it `dolt init`s the hub at the resolved
   landing-zone path once per machine and exports `MONITION_STORE`.
+  > **Corrected 2026-06-19 (impl):** "`dolt init`s the hub" is wrong for the fork path —
+  > forkers default to **SQLite** (the 122 MB Dolt binary is the #1 adoption barrier; see
+  > monition `2026-06-18-dolt-default-ours-sqlite-external.md`). As built, `bootstrap.sh`
+  > creates the hub via `monition init-store` (SQLite default) and points `MONITION_STORE`
+  > via `monition instrument`; it never forces Dolt. A Dolt hub (ours) is created
+  > out-of-band with `monition init-store <hub> --dolt` — the `--dolt` was *our* setup
+  > leaking into the forker-facing description.
 
 The store stays local and unpublished. When the landing zone is a **private** repo, its
 `dump.sql` may be tracked there for offsite backup while the `.dolt/` working dir stays
