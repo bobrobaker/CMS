@@ -25,7 +25,13 @@ use that machinery or improve it.
 
 - **Write for an external reader, from line one.** No source-project provenance in
   `method/`, `starter/`, or skill doc bodies — the linter WARNs on known provenance
-  strings. Worked examples are neutral or web-dev flavored.
+  strings. Worked examples are neutral or web-dev flavored. This is the *teaching
+  surface* only: the `monition/` store is **not** part of it. The store is
+  private-but-versioned working memory mined from real sessions, so rows may carry
+  machine-local paths and personal detail (the linter's provenance check scans only
+  `method`/`payload`). Keep a row's transferable lesson legible on its own so a fork
+  inheriting `dump.sql` still benefits where a local path won't resolve — but don't
+  sanitize rows the way teaching docs are sanitized.
 - **Read budget:** grep before reading; `grep -n "^##"` before any markdown range read;
   load only the `method/` docs the task touches.
 - **Machinery edits follow method.** Before editing a skill or `starter/` template that a
