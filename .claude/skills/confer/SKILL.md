@@ -26,6 +26,12 @@ other side back at them. Every turn either moves the decision or ends the thread
   woke mid-write — wait ~2s and re-read **bypassing cached file state** (a shell
   `grep`/`sed`, or re-read after a beat) before acting. Re-reading through a stale view
   just re-confirms a turn that is already there.
+- **A cited doc that looks missing or contradictory mid-confer may be mid-write, not
+  wrong.** The other live session edits its own repo's docs (decisions, charters) *as it
+  argues* — so a cited authority that's absent, empty, or seemingly contradicts ratified
+  docs may simply not be written yet. Re-read after a beat before rebutting "your source
+  doesn't exist / contradicts the record"; treat a freshly-absent cited authority like a
+  torn write, not proof the other side is wrong.
 - **On a watch timeout, scan for *any* confer thread awaiting you before going idle.** A
   cross-fire — both sides initiating different but entangled threads — leaves a baton
   waiting on a file you were never watching.
@@ -133,5 +139,7 @@ four-part opener does real convergence work — keep all four in Turn 1.
 - Watch loops wake on `resolved`/`needs-user`/archive-move, not just the baton flip — a
   listener once slept through the other side converging and the watched path vanished.
 - A baton without a complete turn body is re-read (cache-bypassed), not answered.
+- A cited doc that's missing/contradictory mid-confer may be mid-write — re-read before
+  rebutting; the other live session edits its own repo's docs as it argues.
 
 Full dated log: [feedback.md](feedback.md).

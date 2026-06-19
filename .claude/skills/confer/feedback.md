@@ -42,3 +42,11 @@ and the correction. Consult when **revising** a rule. The distilled, firing form
   entangled decisions, so each held the other's baton on a thread the other wasn't
   watching. When a watch/listen times out or parks, do one scan for *any* `type: confer`,
   `status: open`, `awaiting: <this repo>` thread before going idle.
+- **2026-06-19** — A listener nearly rebutted "your cited decision doc doesn't exist /
+  contradicts the ratified record" — but the initiator's session was *writing those very
+  docs concurrently* as it argued, so the doc appeared (and the apparent contradiction
+  resolved into an audience split) minutes later. A cited authority that's absent, empty,
+  or seemingly contradictory mid-confer may just be mid-write. Re-read after a beat before
+  rebutting; treat a freshly-absent cited authority like a torn write, not proof the other
+  side is wrong. (Generalizes the torn-write gotcha from the *turn body* to *cited
+  evidence*.)
