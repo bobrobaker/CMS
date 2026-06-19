@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-19 · Retire the per-repo stores and the forkable reference exhibit (v6 cutover)
 
 **Decision.** With the single Dolt hub live (`$CMS_LANDING_ZONE/monition`, see

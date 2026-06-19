@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-13 · Project-local tech-debt capture → durable shelf
 
 **Decision.** Adopt a discipline for capturing *project-local* tech-debt (deferred

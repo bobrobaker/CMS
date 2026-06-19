@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-19 · `bootstrap.sh` consumes monition's decomposed `init` (store-only + instrument-only)
 
 **Decision.** Now that `monition init` decomposes into two orthogonal primitives —

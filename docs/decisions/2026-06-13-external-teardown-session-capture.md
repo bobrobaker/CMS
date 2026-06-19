@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-13 · Capturing a session an external runner tears down
 
 **Decision.** A session that an external runner closes before it can self-wrap must still

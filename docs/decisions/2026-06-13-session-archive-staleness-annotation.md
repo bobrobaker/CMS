@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-13 · Session-archive staleness annotation: build now, capture-side
 
 **Decision.** Built the staleness annotation the session-archive spec had filed under

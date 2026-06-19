@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-14 · CMS routes its own lessons at mine-time — no candidate queue
 
 **Decision.** For the incubator's *own* mined lessons, drop the `mirror=candidate`

@@ -63,13 +63,64 @@ def check_opening_thesis(path, text):
         warn(path, "opening line is very long — is it still a one-sentence thesis?")
 
 
+DECISION_STATUSES = {"decided", "superseded"}
+_FM_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
+_FM_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*)$")
+
+
+def _frontmatter(text):
+    """Flat dict of top-level `key: value` pairs from a leading `---`…`---` block;
+    {} if absent. Sufficient for `status:`/`superseded_by:` — not a full YAML parser."""
+    m = _FM_RE.match(text)
+    if not m:
+        return {}
+    out = {}
+    for line in m.group(1).splitlines():
+        km = _FM_KEY_RE.match(line)
+        if km:
+            out[km.group(1)] = km.group(2).strip().strip("\"'")
+    return out
+
+
+def check_decision_status(path, text):
+    """Shadows: 'a decision doc declares live-vs-dead at the file, not only in the
+    verdict registry' (docs/decisions/README.md). Every decision doc — a `*.md` (not
+    README) whose immediate parent dir is `decisions/` anywhere under `docs/` — carries
+    frontmatter `status:` in {decided, superseded}; a `superseded` doc needs a
+    `superseded_by:` resolving to an existing sibling. Mechanical → ERROR. Self-gates:
+    a repo with no `docs/**/decisions/` dir never trips it. Depth-robust so module-internal
+    `docs/<module>/decisions/` dirs are covered without re-anchoring."""
+    parts = os.path.relpath(path, ROOT).split(os.sep)
+    if os.path.basename(path) == "README.md" or len(parts) < 2:
+        return
+    if "docs" not in parts[:-1] or parts[-2] != "decisions":
+        return
+    fm = _frontmatter(text)
+    status = fm.get("status")
+    if status is None:
+        error(path, "decision doc missing frontmatter `status:` (expected decided|superseded)")
+        return
+    if status not in DECISION_STATUSES:
+        error(path, f"decision doc `status: {status}` not in {sorted(DECISION_STATUSES)}")
+        return
+    if status == "superseded":
+        target = fm.get("superseded_by")
+        if not target:
+            error(path, "`status: superseded` requires `superseded_by:` (a reversal with no "
+                        "successor is itself a new decision doc — see docs/decisions/README.md)")
+            return
+        resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
+        if not os.path.exists(resolved):
+            error(path, f"`superseded_by: {target}` resolves to no file")
+
+
 # ---- project checks go here ----------------------------------------------
 # def check_<name>(path, text):
 #     """Shadows: '<the governance rule this check backstops>'. <ERROR|WARN>."""
 #     ...
 # ---------------------------------------------------------------------------
 
-CHECKS = [check_relative_links, check_opening_thesis]
+CHECKS = [check_relative_links, check_opening_thesis, check_decision_status]
 
 
 def main():

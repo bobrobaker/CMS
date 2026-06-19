@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · Session-archive tooling is global, anchored at a dotfile
 
 **Decision.** The session-archive *capture* tooling (`tools/session_tokens.py`,

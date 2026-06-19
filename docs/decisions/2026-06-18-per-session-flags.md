@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · Per-session flag store — scoped attribution, whole-directory drain
 
 > **Superseded in part (2026-06-18, see `2026-06-18-flag-drain-liveness-scoped.md`):**

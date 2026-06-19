@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · Two-tier autoflagger — agent-as-judge, hook-as-backstop
 
 > **Superseded in part (2026-06-18, see `2026-06-18-per-session-flags.md`):** the flag

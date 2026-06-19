@@ -1,3 +1,7 @@
+---
+status: superseded
+superseded_by: 2026-06-17-cms-forkable-refactor.md
+---
 # 2026-06-14 · CMS owns host instantiation; Monition exposes machinery only
 
 > **Superseded in its instantiation framing by [2026-06-17 — CMS is a forkable reference implementation](2026-06-17-cms-forkable-refactor.md).**

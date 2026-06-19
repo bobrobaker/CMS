@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-13 · Mirror-back: dispatch disciplines + a decisions shelf
 
 **Decision.** Landed three generic candidates from monition's upstream-candidates

@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-14 · Tech-debt shelf — where to drain, and the relevance gate
 
 **Decision.** The shelf has **three drain/remind triggers, three jobs** — not one

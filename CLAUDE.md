@@ -42,7 +42,10 @@ use that machinery or improve it.
 - **Design calls leave a record.** Project-internal design decisions land as date-slug
   files in `docs/decisions/` (the call plus its why), so a later session inherits the
   reasoning instead of relitigating it. Cross-cutting calls that outlive this repo go to
-  the landing zone's `decisions/`.
+  the landing zone's `decisions/`. These files are **provenance**: each carries frontmatter
+  `status: decided|superseded` (linted) so retirement is visible at the file, not just in a
+  registry. `docs/DESIGN.md` is CMS's live-verdict registry — consult it for *which* call
+  currently stands.
 - **Mirror-back sweep.** At the start of a session here (or on request), scan downstream
   forks/projects for queued upstream candidates (each appends to its own
   `handoffs/upstream-candidates.md`) and propose them through the consent gate; a landed

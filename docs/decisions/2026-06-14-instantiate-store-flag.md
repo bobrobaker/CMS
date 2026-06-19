@@ -1,3 +1,7 @@
+---
+status: superseded
+superseded_by: 2026-06-17-cms-forkable-refactor.md
+---
 # 2026-06-14 · `/instantiate --store` — opt into a live Monition store at generation
 
 > **Fully superseded by [2026-06-17 — CMS is a forkable reference implementation](2026-06-17-cms-forkable-refactor.md).**

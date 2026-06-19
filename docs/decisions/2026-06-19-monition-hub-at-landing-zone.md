@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-19 · The Monition hub lives at the landing zone (`$CMS_LANDING_ZONE/monition/`)
 
 **Decision.** The single cross-repo Monition takeaway hub is hosted at the **landing

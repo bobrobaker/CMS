@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-14 · The architect owns run-end mine + wrap for delegated runs
 
 **Decision.** When a run delegates its buckets to stateless workers an orchestrator

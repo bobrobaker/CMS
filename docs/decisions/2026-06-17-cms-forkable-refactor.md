@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-17 · CMS is a forkable reference implementation, not a generator
 
 > **Refined in part (2026-06-18, see [`2026-06-18-session-archive-tooling-global-anchor.md`](2026-06-18-session-archive-tooling-global-anchor.md)):**

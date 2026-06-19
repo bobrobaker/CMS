@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · The spawn primitive is backend-agnostic — CMS never hard-depends on Superset
 
 **Decision.** The agent-spawn primitive that CMS ships (the `agent-spawn`-style script

@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · Flag drain is liveness-scoped, not whole-directory
 
 **Decision.** `mine-session` step 0a drains flag files by **session liveness**, not by

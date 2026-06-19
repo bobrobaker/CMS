@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-17 · Skills are self-contained three-layer artifacts; feedback stays text (for now)
 
 **Decision.** A CMS skill is a **self-contained, progressively-disclosed three-layer

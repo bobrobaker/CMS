@@ -1,3 +1,6 @@
+---
+status: decided
+---
 # 2026-06-18 · /housekeep — a transient-store sweep, not a doc audit
 
 **Decision.** Add a `/housekeep` skill that sweeps the system's *transient* stores for
