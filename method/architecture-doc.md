@@ -63,17 +63,24 @@ check parses, so it is precise and closed — do not invent a fourth form.
 
 - **Path reference** — a repo-relative path to a file or directory:
   `core/commands.py` or `api/`. Resolves if the path exists. A trailing slash marks a
-  directory.
+  directory. A path reference **contains a `/`** — a bare dotted token with no slash
+  (`config.yaml`, `v1.2`) reads as prose, not a reference, and the check skips it; to
+  reference a top-level file, anchor it (`road.md:## 2 Plan`) or write it under its directory.
 - **Symbol reference** — a path, a colon, and a symbol name (function, class, constant,
-  or section): `core/commands.py:Command` or `road.md:§2`. Resolves if the path exists
-  **and** the symbol is findable in it (a definition for code; a heading or anchor for a
-  doc). The symbol after the colon is the **grep anchor** — it must be a literal string
-  that appears in the target, so a mechanical search can confirm it.
+  or section): `core/commands.py:Command` or `road.md:## 2 Plan`. Resolves if the path exists
+  **and** the symbol is findable in it (a definition for code; a heading for a doc). The symbol
+  after the colon is the **grep anchor** — a literal substring search, so it must be text that
+  *appears verbatim* in the target. For a section that means the heading's **actual text**
+  (`road.md:## 2 Plan`), not a `§N` shorthand the heading doesn't literally contain. (Substring,
+  not symbol-resolution, is deliberate — it stays zero-dep and language-agnostic; the tradeoff is
+  that `:Command` also matches inside `Commander`, an accepted limit of grep-anchor freshness.)
 - **Cross-repo reference** — a repo handle, a colon, then a path or symbol reference:
   `shared-types:schema/order.ts` or `shared-types:schema/order.ts:Order`. The handle
   before the first colon names another repo in the fleet. A cross-repo reference resolves
   only when that repo is reachable; when it is not, the freshness check **self-gates to
   silence** (it cannot verify what it cannot see) rather than reporting a false miss.
+  *Reachable* concretely means **a sibling directory named by the handle**, alongside this
+  repo — the same fleet layout the rest of the machinery assumes.
 
 Rules that keep references checkable:
 
@@ -93,11 +100,28 @@ is *evergreen-current* only if a passing freshness check backs the claim; an "ev
 label backed by nothing but good intentions is exactly the anti-goal this convention
 exists to prevent.
 
-The **mechanical check** that enforces `FRESH` is built separately — it parses the three
-reference forms defined above, resolves each, and reports unresolved references; cross-repo
-references self-gate to silence when the other repo is unreachable. This doc defines *what
-checkable means*; the check *enforces it*. Until that check exists and passes on a
-doc, the doc may not claim to be evergreen.
+The **mechanical check** (`check_architecture_freshness`, in the managed linter) enforces
+`FRESH` — it parses the three reference forms defined above, resolves each, and reports
+unresolved references; cross-repo references self-gate to silence when the other repo is
+unreachable. This doc defines *what checkable means*; the check *enforces it*. Until that
+check passes on a doc, the doc may not claim to be evergreen.
+
+**How the check finds a conforming doc.** A doc opts into this doctype with the frontmatter
+marker `doctype: architecture` — *that* is what the freshness check keys on (not a filename),
+so the convention works in both homes: a standalone `architecture.md` and an in-place
+`docs/DESIGN.md` both carry the marker. A doc without the marker is invisible to the check
+(self-gated to silence), so adoption is opt-in per doc. A leading-slash token (a `/slash-command`
+or an absolute path) is not a repo-relative reference: a slash-command is skipped; an absolute
+path is flagged (references are repo-relative).
+
+**When the check flags a reference — fix, don't reword to green.** If a flagged path is a real
+in-tree reference that *drifted*, fix the path. Reword the span to prose (drop the backticks)
+**only** when it's a category-error — the path genuinely isn't in this repo's tree (a fork file,
+another repo, a retired thing), so it was never a valid reference. Rewording a real reference to
+silence the check hollows out the invariant. (For a mixed-content in-place doc whose non-architecture
+sections legitimately name out-of-tree paths, that's expected prose — but watch for the day those
+should be *structured* cross-repo references instead, which is the signal to scope the marker to a
+region rather than the whole file.)
 
 `FRESH` is about references, not prose. The check cannot know whether "`api/` owns HTTP
 routing" is still *true* — only whether `api/` still exists. Keeping the ownership prose

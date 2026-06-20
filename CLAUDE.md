@@ -17,16 +17,20 @@ use that machinery or improve it.
   the per-project slots.
 - `landing/` — the zero-config landing-zone fallback; `$CMS_LANDING_ZONE` overrides it.
 - `docs/DESIGN.md` — architecture and roadmap. `tools/cms_lint.py` — this repo's linter.
-- `monition/` — this repo's Monition store (SQLite default, Dolt optional; semantics in
-  `method/takeaway-store.md`; machinery is the installed Monition module). Hooks inject
-  matching rows as you work; mine new ones with `/mine-session`.
+- The **Monition store** — rows + firings live in the cross-repo **hub** at
+  `$CMS_LANDING_ZONE/monition`; this repo joins it via `monition instrument` and keeps **no
+  per-repo store dir** (the former `monition/` dir was retired in the v6 cutover — see
+  `docs/decisions/2026-06-19-retire-per-repo-stores-and-reference-exhibit.md`). A standalone
+  forker with no hub gets its own SQLite store. Semantics in `method/takeaway-store.md`;
+  machinery is the installed Monition module. Hooks inject matching rows as you work; mine new
+  ones with `/mine-session`.
 
 ## Rules
 
 - **Write for an external reader, from line one.** No source-project provenance in
   `method/`, `starter/`, or skill doc bodies — the linter WARNs on known provenance
   strings. Worked examples are neutral or web-dev flavored. This is the *teaching
-  surface* only: the `monition/` store is **not** part of it. The store is
+  surface* only: the Monition store is **not** part of it. The store is
   private-but-versioned working memory mined from real sessions, so rows may carry
   machine-local paths and personal detail (the linter's provenance check scans only
   `method`/`payload`). Keep a row's transferable lesson legible on its own so it still

@@ -1,7 +1,7 @@
 # Bucket [B04]: Evergreen architecture-doc convention (fleet doctype)
 
 Parent: ../workstream.md
-State: later
+State: done
 Goal for session: Define the fleet-wide current-architecture doctype (method + starter).
 Target duration: 30 min
 Context budget: Read parent + this bucket + required touchpoints only.

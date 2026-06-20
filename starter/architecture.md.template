@@ -1,3 +1,6 @@
+---
+doctype: architecture
+---
 # {{PROJECT_NAME}} — current architecture
 
 <!-- The evergreen current-state doc at the module/seam altitude. See method/architecture-doc.md

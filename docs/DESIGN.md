@@ -1,3 +1,6 @@
+---
+doctype: architecture
+---
 # CMS design — seams, contract, roadmap
 
 The architecture behind the system. The README holds the story; this doc holds the
@@ -70,9 +73,9 @@ assembled from tiers.
   inject as context and the linter/hooks fire mechanically.
 - **The takeaway store** — rows + firings live in a single cross-repo **hub**
   (Dolt-backed for us) at `$CMS_LANDING_ZONE/monition`; host repos join it via `monition
-  instrument` and keep **no per-repo store** (the former per-repo `monition/` dirs were
+  instrument` and keep **no per-repo store** (the former per-repo monition/ dirs were
   retired in the v6 cutover — see `docs/decisions/2026-06-19-retire-per-repo-stores-and-reference-exhibit.md`).
-  A standalone forker with no hub configured still gets its own SQLite `monition/` store.
+  A standalone forker with no hub configured still gets its own SQLite monition/ store.
   Semantics in `method/takeaway-store.md`. Load-bearing invariants: **trigger is data**
   (each row carries `trigger_kind` + `trigger_spec`; executors are dumb) and **every
   disclosure is logged + ratable** (the `firings` table is the eval substrate the firing
@@ -95,11 +98,18 @@ assembled from tiers.
 
 ## Roadmap (forward)
 
-### Active — Workstream 2: fleet propagation of shared standards + evergreen architecture-doc convention
+### Landed (2026-06-20) — Workstream 2: fleet propagation of shared standards + evergreen architecture-doc convention
+
+All buckets complete; execution in `docs/workstreams/fleet-standard-propagation/`. Shipped:
+the vendored-copy + version-stamp + `cms update` + drift-warn propagation; the
+assisted-confirmation decision-doc backfill; the architecture doctype + mechanical freshness
+check (this `DESIGN.md` is its first conforming instance — `doctype: architecture`); and a
+mirror-parity guard keeping the vendored linter honest. Fork rollout is queued (opt-in) in the
+landing zone. The design call below is retained as the standing rationale.
 
 WS1 made decision-doc retirement machine-enforced and legible at the file, but shipped the
-check by **verbatim duplication** into each fork's `tools/lint.py` at bootstrap time. Forks
-extend `lint.py` locally and there is no downstream sync, so a later CMS opinion change never
+check by **verbatim duplication** into each fork's tools/lint.py at bootstrap time. Forks
+extend lint.py locally and there is no downstream sync, so a later CMS opinion change never
 reaches an already-bootstrapped fork — opinion freezes at bootstrap time. WS2 closes that gap
 and lands the evergreen architecture-doc convention.
 

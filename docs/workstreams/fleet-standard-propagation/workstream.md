@@ -1,6 +1,6 @@
 # Workstream: Fleet propagation of shared standards + evergreen architecture-doc convention
 
-Progress: B03/backfill-scaffold next — propagation half DONE (B01,B02,B04,B07). Session stopping after B07; B03 → B05 → B06 handed to a fresh session (see handoff).
+Progress: **WS2 CLOSED (2026-06-20).** All buckets done: B01,B02,B04,B07 (propagation + arch-doctype) + B03 (backfill scaffold) + B05 (arch-doc freshness check + mirror-parity guard) + B06 (dogfood DESIGN.md + fork rollout handoff). B03/B05/B06 were each built, code-reviewed, and confer-reviewed with the brain2 architect to convergence; every A/B concern implemented + re-validated, C/D parks logged in bucket Updates. Fork rollout queued in the landing zone (opt-in).
 Blocked: none
 
 ## Objective
@@ -32,10 +32,10 @@ settled — see `docs/DESIGN.md §Roadmap → Workstream 2`. This workstream bui
 |---|---|---|---|---|
 | B01 | done | buckets/B01_propagation-mechanism.md | Managed/local seam + version stamp + `cms update` verb | — |
 | B02 | done | buckets/B02_drift-warn-check.md | Drift-warn check; self-gates disconnected | B01 |
-| B03 | later | buckets/B03_backfill-scaffold.md | Scaffold-with-confirmation backfill helper | B01 |
+| B03 | done | buckets/B03_backfill-scaffold.md | Scaffold-with-confirmation backfill helper | B01 |
 | B04 | done | buckets/B04_arch-doc-convention.md | Fleet arch-doc doctype (method + starter) | — |
-| B05 | later | buckets/B05_arch-doc-freshness-check.md | Mechanical freshness check for the doctype | B04 |
-| B06 | later | buckets/B06_dogfood-and-rollout.md | Reconcile CMS DESIGN.md; queue fork rollout | B01,B04,B07 |
+| B05 | done | buckets/B05_arch-doc-freshness-check.md | Mechanical freshness check for the doctype | B04 |
+| B06 | done | buckets/B06_dogfood-and-rollout.md | Reconcile CMS DESIGN.md; queue fork rollout | B01,B03,B04,B05,B07 |
 | B07 | done | buckets/B07_assisted-lint-migration.md | Migrate frozen-copy forks to the wrapper (4 auto, 1 flag) | B01 |
 
 States: `next`, `active`, `blocked`, `done`, `deferred`, `later`.

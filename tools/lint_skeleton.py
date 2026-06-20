@@ -9,6 +9,13 @@ check is ERROR only if a violation is unambiguously wrong; a loose mechanical sh
 of a semantic rule is always WARN (a high-precision backstop, never a substitute for
 judgment). Each check's docstring names the governance rule it shadows — the linter
 is indexed to the semantic layer, not a replacement for it.
+
+**Public surface for sibling managed tools.** `backfill_decision_status.py` (co-vendored in
+the same managed set, same version stamp) imports from this module: `is_decision_doc`,
+`validate_superseded_target`, `strip_code`, `_frontmatter`, `_FM_RE`, `LINK_RE`, `md_files`,
+`ROOT`, `DECISION_STATUSES`. Treat these as a contract — they ship and version together, so a
+rename here must update the sibling in the same change (the underscore-prefixed two are a known
+exception to "private," tracked on the debt shelf for a future de-underscore pass).
 """
 import os
 import re
@@ -17,7 +24,15 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOC_DIRS = ["docs"]  # directories holding governed markdown
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
-FENCE_RE = re.compile(r"^```.*?^```", re.S | re.M)  # fenced code blocks
+FENCE_RE = re.compile(r"```.*?```", re.S)        # fenced code blocks
+_CODE_SPAN_RE = re.compile(r"`[^`]+`")            # inline code spans
+
+
+def strip_code(text):
+    """Remove fenced code blocks and inline code spans so link/anchor checks don't fire on
+    example syntax inside code (e.g. an illustrative `[x](<file>)` in a doc's own how-to).
+    Kept behaviourally identical to `cms_lint._strip_code` — edit both together."""
+    return _CODE_SPAN_RE.sub("", FENCE_RE.sub("", text))
 
 errors = []
 warnings = []
@@ -42,9 +57,9 @@ def md_files():
 
 def check_relative_links(path, text):
     """Shadows: 'every pointer targets an existing file'. Mechanical → ERROR.
-    Links inside fenced code blocks are illustrative (a README skeleton, or a
-    forward-reference to a yet-to-be-generated artifact), not live pointers — skip them."""
-    text = FENCE_RE.sub("", text)
+    Links inside code (fenced blocks OR inline spans) are illustrative (a README skeleton,
+    or a forward-reference to a yet-to-be-generated artifact), not live pointers — skip them."""
+    text = strip_code(text)
     for m in LINK_RE.finditer(text):
         target = m.group(1).split("#")[0]
         if not target or "://" in target or target.startswith("mailto:"):
@@ -63,7 +78,7 @@ def check_opening_thesis(path, text):
 
 
 DECISION_STATUSES = {"decided", "superseded"}
-_FM_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
+_FM_RE = re.compile(r"^---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", re.S)  # tolerate CRLF + a closing --- that ends the file
 _FM_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*)$")
 
 
@@ -81,18 +96,39 @@ def _frontmatter(text):
     return out
 
 
-def check_decision_status(path, text):
-    """Shadows: 'a decision doc declares live-vs-dead at the file, not only in the
-    verdict registry' (docs/decisions/README.md). Every decision doc — a `*.md` (not
-    README) whose immediate parent dir is `decisions/` anywhere under `docs/` — carries
-    frontmatter `status:` in {decided, superseded}; a `superseded` doc needs a
-    `superseded_by:` resolving to an existing sibling. Mechanical → ERROR. Self-gates:
-    a repo with no `docs/**/decisions/` dir never trips it. Depth-robust so module-internal
-    `docs/<module>/decisions/` dirs are covered without re-anchoring."""
+def is_decision_doc(path):
+    """A decision doc: a `*.md` (not README) whose immediate parent dir is `decisions/`
+    anywhere under `docs/`. Depth-robust so module-internal `docs/<module>/decisions/`
+    dirs are covered without re-anchoring. Single source of truth for *what the
+    decision-status convention governs* — `check_decision_status` and the backfill helper
+    (`backfill_decision_status.py`) both gate on this, so the discovery rule never forks."""
     parts = os.path.relpath(path, ROOT).split(os.sep)
     if os.path.basename(path) == "README.md" or len(parts) < 2:
-        return
-    if "docs" not in parts[:-1] or parts[-2] != "decisions":
+        return False
+    return "docs" in parts[:-1] and parts[-2] == "decisions"
+
+
+def validate_superseded_target(path, target):
+    """Pure check for the `superseded_by:` rule: returns an error *message* (str) if
+    `target` is missing or doesn't resolve to an existing sibling of `path`, else None.
+    No side effects — the single source of the resolve rule, shared by `check_decision_status`
+    and the backfill helper so the helper can validate *before* writing (not after)."""
+    if not target:
+        return ("`status: superseded` requires `superseded_by:` (a reversal with no "
+                "successor is itself a new decision doc — see docs/decisions/README.md)")
+    resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
+    if not os.path.exists(resolved):
+        return f"`superseded_by: {target}` resolves to no file"
+    return None
+
+
+def check_decision_status(path, text):
+    """Shadows: 'a decision doc declares live-vs-dead at the file, not only in the
+    verdict registry' (docs/decisions/README.md). Every decision doc (see `is_decision_doc`)
+    carries frontmatter `status:` in {decided, superseded}; a `superseded` doc needs a
+    `superseded_by:` resolving to an existing sibling. Mechanical → ERROR. Self-gates:
+    a repo with no `docs/**/decisions/` dir never trips it."""
+    if not is_decision_doc(path):
         return
     fm = _frontmatter(text)
     status = fm.get("status")
@@ -103,14 +139,100 @@ def check_decision_status(path, text):
         error(path, f"decision doc `status: {status}` not in {sorted(DECISION_STATUSES)}")
         return
     if status == "superseded":
-        target = fm.get("superseded_by")
-        if not target:
-            error(path, "`status: superseded` requires `superseded_by:` (a reversal with no "
-                        "successor is itself a new decision doc — see docs/decisions/README.md)")
-            return
-        resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
-        if not os.path.exists(resolved):
-            error(path, f"`superseded_by: {target}` resolves to no file")
+        msg = validate_superseded_target(path, fm.get("superseded_by"))
+        if msg:
+            error(path, msg)
+
+
+ARCH_DOCTYPE = "architecture"
+_CODESPAN_RE = re.compile(r"`([^`]+)`")
+# A reference token is word-chars / `.` / `-` / `/` / `§`, with up to two `:` separators
+# (path, path:symbol, repo:path:symbol). This deliberately excludes spaces, parens, etc. so a
+# prose code span like `.validate()` or `cms update` is NOT mistaken for a reference.
+_REF_TOKEN_RE = re.compile(r"\A[\w.\-/§]+(?::[\w.\-/§]+){0,2}\Z")
+
+
+def _looks_like_path(s):
+    return "/" in s or "." in s  # a bare word (`Command`) is a symbol name, not a path ref
+
+
+def _parse_arch_reference(token):
+    """Parse one code-span token into (repo|None, path, symbol|None) per the three reference
+    forms in method/architecture-doc.md, or None if the token isn't a reference at all."""
+    if not _REF_TOKEN_RE.match(token):
+        return None
+    if token.startswith("/"):
+        rest = token[1:]
+        if "/" not in rest and "." not in rest:
+            return None  # a `/slash-command` (single segment, no extension) — not a reference
+        return (None, token, None)  # an absolute path → _resolve ERRORs (refs are repo-relative)
+    parts = token.split(":")
+    if len(parts) == 1:
+        # A bare path ref must contain a '/'. A dotted-but-slashless token (`config.yaml`,
+        # `v1.2`, `e.g.`, `.cms-version`) is prose, not a reference — a top-level file is
+        # referenced with an anchor (`road.md:§2`) or under a dir, never bare. Kills the
+        # false-positive surface that "contains a dot" would otherwise open.
+        return (None, parts[0], None) if "/" in parts[0] else None
+    if len(parts) == 2:
+        if _looks_like_path(parts[0]):
+            return (None, parts[0], parts[1])      # local  path:symbol
+        if _looks_like_path(parts[1]):
+            return (parts[0], parts[1], None)      # cross-repo  repo:path
+        return None
+    return (parts[0], parts[1], parts[2])          # cross-repo  repo:path:symbol
+
+
+def _resolve_arch_reference(ref, token):
+    """Return an error message if `ref` doesn't resolve against the live tree, else None.
+    A cross-repo reference whose repo is not a reachable sibling **self-gates to silence**
+    (returns None) — the check can't verify what it can't see."""
+    repo, path, symbol = ref
+    if repo:
+        base = os.path.join(os.path.dirname(ROOT), repo)
+        if not os.path.isdir(base):
+            return None  # unreachable sibling repo → self-gate (no false miss)
+    else:
+        base = ROOT
+    if os.path.isabs(path):
+        return f"architecture reference `{token}` → must be repo-relative, not absolute"
+    target = os.path.normpath(os.path.join(base, path.rstrip("/")))
+    if target != base and not target.startswith(base + os.sep):
+        return f"architecture reference `{token}` → escapes the repo root"
+    if not os.path.exists(target):
+        return f"architecture reference `{token}` → path does not resolve"
+    if symbol:
+        if os.path.isdir(target):
+            return f"architecture reference `{token}` → symbol named on a directory"
+        try:
+            with open(target, encoding="utf-8") as f:
+                if symbol not in f.read():
+                    return f"architecture reference `{token}` → anchor `{symbol}` not found in {path}"
+        except OSError:
+            return f"architecture reference `{token}` → cannot read {path}"
+    return None
+
+
+def check_architecture_freshness(path, text):
+    """Shadows the `FRESH` invariant (method/architecture-doc.md): a doc that opts into the
+    architecture doctype (frontmatter `doctype: architecture`) must have every reference — the
+    three code-span forms (path, path:symbol, repo:path:symbol) — resolve against the live tree.
+    Mechanical → ERROR. Self-gates twice: a doc without the marker emits nothing; a cross-repo
+    reference whose repo isn't a reachable sibling self-gates to silence. A *near-miss* doctype
+    value (`architecure` typo) WARNs rather than silently opting the doc out — the value-based
+    opt-in isn't typo-proof the way the decision-doc dir-based one is."""
+    doctype = _frontmatter(text).get("doctype")
+    if doctype != ARCH_DOCTYPE:
+        if doctype and "arch" in doctype.lower():
+            warn(path, f"frontmatter `doctype: {doctype}` is not the recognized `{ARCH_DOCTYPE}` "
+                       "— typo? the architecture freshness check is being skipped for this doc")
+        return
+    for m in _CODESPAN_RE.finditer(FENCE_RE.sub("", text)):  # fenced examples aren't live refs
+        ref = _parse_arch_reference(m.group(1).strip())
+        if ref is None:
+            continue
+        msg = _resolve_arch_reference(ref, m.group(1).strip())
+        if msg:
+            error(path, msg)
 
 
 def check_stamp_drift():
@@ -141,7 +263,8 @@ def check_stamp_drift():
 
 # The managed check set. Fork-local checks are NOT added here — they live in the
 # tools/lint.py wrapper and reach run() via extra_checks.
-SHARED_CHECKS = [check_relative_links, check_opening_thesis, check_decision_status]
+SHARED_CHECKS = [check_relative_links, check_opening_thesis, check_decision_status,
+                 check_architecture_freshness]
 # Repo-level managed checks: run once over the repo, not per markdown file.
 REPO_CHECKS = [check_stamp_drift]
 
