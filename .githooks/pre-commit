@@ -8,5 +8,14 @@ python3 "$ROOT/tools/cms_lint.py" || exit 1
 python3 "$ROOT/tools/test_lint_mirror.py" >/dev/null || { python3 "$ROOT/tools/test_lint_mirror.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
-"$ROOT/bootstrap.sh" --refresh-manifest >/dev/null 2>&1 && git add "$ROOT/tools/.cms-manifest" 2>/dev/null || true
+# Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).
+# Errors here are deterministic env breakage (no sha256 tool, a missing managed file), not
+# transient — surface them rather than swallow with `|| true`.
+if "$ROOT/bootstrap.sh" --refresh-manifest >/dev/null; then
+  git add "$ROOT/tools/.cms-manifest"
+else
+  echo "pre-commit: manifest refresh FAILED — commit aborted so a stale manifest can't ship." >&2
+  echo "  (.cms-manifest may be left empty on disk; fix the cause, or 'git commit --no-verify' to override.)" >&2
+  exit 1
+fi
 exit 0
