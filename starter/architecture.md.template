@@ -1,0 +1,38 @@
+# {{PROJECT_NAME}} — current architecture
+
+<!-- The evergreen current-state doc at the module/seam altitude. See method/architecture-doc.md
+     for the convention: altitude rules, the three reference forms, and the FRESH invariant.
+     Overwrite entries when the architecture changes — never append history (decisions/ owns that).
+     Every path/symbol below is a reference in backticks so the freshness check can resolve it. -->
+
+{{ARCHITECTURE_ONE_LINE}}
+<!-- One sentence: what this system is and its top-level shape (e.g. "N modules in M clusters,
+     fronted by X"). No history, no roadmap. -->
+
+## Modules and ownership
+
+<!-- One entry per module. Name = path anchor (in backticks). One owned responsibility each;
+     an "and also" is a seam waiting to be named below. Point at deeper docs, don't inline them. -->
+
+- `{{MODULE_1_PATH}}` — owns {{MODULE_1_RESPONSIBILITY}}. {{MODULE_1_POINTER}}
+- `{{MODULE_2_PATH}}` — owns {{MODULE_2_RESPONSIBILITY}}. {{MODULE_2_POINTER}}
+
+## Seams
+
+<!-- One entry per boundary that matters. State both sides, the direction of dependence, and
+     the anchor where the contract lives (a `file:symbol`). A cross-repo seam names the other
+     repo: "this repo's X consumes `repo:path:symbol`, owned by repo `repo`." -->
+
+- `{{MODULE_A_PATH}}` → `{{MODULE_B_PATH}}`: {{SEAM_DESCRIPTION}}. Contract at
+  `{{SEAM_ANCHOR}}`.
+- Cross-repo: this repo's `{{LOCAL_MODULE_PATH}}` consumes `{{CROSS_REPO_ANCHOR}}`, owned by
+  repo `{{CROSS_REPO_HANDLE}}`. {{CROSS_REPO_SEAM_NOTE}}
+
+## Pointers / index
+
+<!-- Links out to the contracts, decisions, roadmap sections, and per-module docs that own the
+     detail. This section indexes; it never restates a contract. -->
+
+- Roadmap: `{{ROADMAP_POINTER}}`
+- Key decisions: `{{DECISIONS_POINTER}}`
+- {{EXTRA_POINTERS}}

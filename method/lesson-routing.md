@@ -4,10 +4,11 @@
 codification (`/codify`) — after the lesson is drafted, before the consent-gate
 proposal. Output: a destination plus one line of reasoning, shown at the gate.
 
-**Version:** routing v1 (2026-06-12). This is the canonical text; monition's
+**Version:** routing v2 (2026-06-19). This is the canonical text; monition's
 mine-session skill template carries a domain-stripped copy (confer resolution,
 2026-06-12). Bump this version on any change to the tests and hand off to
-monition once — `monition sync` propagates from there.
+monition once — `monition sync` propagates from there. (v2: test 4 names the three
+CLAUDE.md scopes.)
 
 Run the tests in order; the first decisive hit wins. Under uncertainty, prefer the
 row (test 3): it is the only tier with an eval loop, and it retires cleanly.
@@ -28,7 +29,19 @@ row (test 3): it is the only tier with an eval loop, and it retires cleanly.
    `--mirror candidate`.
 4. **Always-on.** S is "every session" → a CLAUDE.md line, only if it earns being
    paid for every session forever; otherwise make it a session_start row, which
-   stays measurable.
+   stays measurable. Pick the CLAUDE.md by **scope + audience**, not convenience —
+   there are three, and they don't substitute:
+   - **Project CLAUDE.md** (checked into a *public/forkable* repo): only rules fit to
+     **ship to a forker**, who inherits this file. No personal or machine-local content.
+   - **Global `~/.claude/CLAUDE.md`** (private, personal, all your repos, *not* shipped):
+     personal cross-project rules — including **orientation about machinery you have
+     installed** ("what the takeaway store is; what a firing/flag means when you see one")
+     that must also serve *bare* repos the deployment never reached. This content has **no**
+     other home: it can't go in a public per-repo CLAUDE.md (a forker would inherit a fact
+     about *your* setup), and it isn't a contextual trap, so it isn't a store row.
+   - **No private, per-repo, versioned CLAUDE.md exists** (the local override is
+     gitignored + per-checkout). Private *contextual* guidance about the machinery →
+     a **store row** (test 3), which is private-but-versioned and fires by reach/origin.
 5. **Mechanical shadow.** If violating X is mechanically checkable and unambiguous,
    add a linter check (ERROR) or hook alongside whatever prose landed above;
    ambiguous shadows are WARN. For semantic artifacts — shipped prompts, rubrics,

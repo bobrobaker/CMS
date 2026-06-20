@@ -42,6 +42,10 @@ def warn(path, msg):
 def md_files():
     for dirpath, dirs, names in os.walk(ROOT):
         dirs[:] = [d for d in dirs if d != ".git"]
+        # Skip transient agent worktrees (.claude/worktrees/*): separate checkouts, not part
+        # of this repo's governed tree — linting them surfaces false errors from their copies.
+        if os.path.basename(dirpath) == ".claude" and "worktrees" in dirs:
+            dirs.remove("worktrees")
         for n in names:
             if n.endswith(".md") or n.endswith(".md.template"):
                 yield os.path.join(dirpath, n)

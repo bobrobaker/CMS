@@ -3,4 +3,7 @@
 # Arm once per clone: git config core.hooksPath .githooks
 ROOT="$(git rev-parse --show-toplevel)"
 python3 "$ROOT/tools/cms_lint.py" || exit 1
+# Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
+# fork drift-check reads this committed file (never recomputes). See method/tooling.md.
+"$ROOT/bootstrap.sh" --refresh-manifest >/dev/null 2>&1 && git add "$ROOT/tools/.cms-manifest" 2>/dev/null || true
 exit 0

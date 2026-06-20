@@ -5,6 +5,7 @@
 #   ./bootstrap.sh                 in-place: set this clone up to run the machinery
 #   ./bootstrap.sh --link-global   in-place, and symlink shared skills into ~/.claude
 #   ./bootstrap.sh /path/to/repo   apply-to-target: copy the machinery into another repo
+#   ./bootstrap.sh --update /path  re-vendor managed machinery into an already-bootstrapped fork
 #
 # In-place is the primary path: fork/clone CMS, run this, and the machinery is live.
 # Everything here is idempotent — safe to re-run. It never touches ~/.claude unless
@@ -18,6 +19,10 @@ set -euo pipefail
 MONITION_GIT="git+https://github.com/bobrobaker/monition.git"
 MONITION_SRC_DEFAULT="$HOME/projects/monition"   # editable install if this exists
 
+# The CMS-managed portable tools — re-vendored wholesale by `--update` and covered by the
+# version stamp. The fork's tools/lint.py wrapper is NOT in this set (it's fork-local).
+MANAGED_TOOLS="craft_reminder.py autoflag.py lint_skeleton.py"
+
 # ---- output ---------------------------------------------------------------
 step() { printf '\n==> %s\n' "$*"; }
 log()  { printf '    %s\n' "$*"; }
@@ -25,11 +30,99 @@ warn() { printf '  ! %s\n' "$*" >&2; }
 die()  { printf '\nError: %s\n' "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
 # ---- steps (each idempotent) ----------------------------------------------
+
+# Portable sha256 (Linux: sha256sum; macOS: shasum -a 256).
+_sha256() { if command -v sha256sum >/dev/null 2>&1; then sha256sum; else shasum -a 256; fi; }
+
+# Content hash of the managed tools in $1 (a tools/ dir) — the canonical version stamp.
+compute_stamp() {
+  local d="$1" f
+  for f in $MANAGED_TOOLS; do [ -f "$d/$f" ] && cat "$d/$f"; done | _sha256 | cut -d' ' -f1
+}
+
+# Stamp the fork's managed set so a drift check can tell when it falls behind canonical.
+write_stamp() {  # $1 = dst repo root
+  local stamp; stamp="$(compute_stamp "$1/tools")"
+  printf '%s\n' "$stamp" > "$1/tools/.cms-version"
+  log "stamped managed tools @ ${stamp:0:12}"
+}
+
+# Lay down tools/lint.py as a thin fork-local WRAPPER that imports the managed checks.
+# Never clobber a fork's own lint.py; a legacy frozen-copy lint.py (pre-seam) is detected
+# and flagged for manual migration, not overwritten.
+lay_down_lint_wrapper() {  # $1 = dst repo root; returns 1 if a legacy lint.py was left unmigrated
+  local lint="$1/tools/lint.py"
+  if [ -f "$lint" ]; then
+    if grep -q 'import lint_skeleton' "$lint"; then
+      return 0  # already the wrapper — nothing to do
+    fi
+    warn "tools/lint.py is a legacy frozen copy (pre-seam) — NOT overwritten."
+    warn "  migrate it to the wrapper (see the assisted migration, B07) so managed-check"
+    warn "  updates land; move any fork-local checks into FORK_CHECKS."
+    return 1
+  fi
+  cat > "$lint" <<'LINTPY'
+#!/usr/bin/env python3
+"""This fork's linter — a thin wrapper. Managed checks live in tools/lint_skeleton.py and are
+re-vendored by `./bootstrap.sh --update`; do NOT edit that file. Add THIS fork's checks below
+(they survive updates), then pass them to run()."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import lint_skeleton
+
+# ---- this fork's checks (survive `--update`) ------------------------------
+# def check_mine(path, text):
+#     """Shadows: '<the governance rule this backstops>'. <ERROR|WARN>."""
+#     lint_skeleton.error(path, "...")   # or lint_skeleton.warn(path, "...")
+FORK_CHECKS = []
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    sys.exit(lint_skeleton.run(extra_checks=FORK_CHECKS))
+LINTPY
+  chmod +x "$lint"
+  return 0
+}
+
+# Regenerate the canonical managed-tools manifest in the CMS clone — the SINGLE bash hash
+# producer the fork drift-check reads (it never recomputes). Run from CMS's own pre-commit.
+refresh_manifest() {
+  local root; root="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)" \
+    || die "bootstrap.sh --refresh-manifest must run from within the CMS git clone"
+  compute_stamp "$root/tools" > "$root/tools/.cms-manifest"
+  log "refreshed tools/.cms-manifest @ $(cut -c1-12 "$root/tools/.cms-manifest")"
+}
+
+# `--update`: re-vendor the managed set + stamp into an already-bootstrapped fork, opt-in.
+# Touches only CMS-managed files; never the fork's lint.py wrapper, starter docs, or store.
+update_target() {  # $1 = target path
+  local src dst t
+  src="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)" \
+    || die "bootstrap.sh --update must be run from within the CMS git clone (the canonical source)"
+  dst="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" \
+    || die "target is not a git repository: $1"
+  step "cms update — re-vendor managed machinery into $dst"
+  mkdir -p "$dst/tools" "$dst/.claude/skills"
+  for t in $MANAGED_TOOLS; do
+    [ -f "$src/tools/$t" ] && cp "$src/tools/$t" "$dst/tools/$t"
+  done
+  cp -R "$src/.claude/skills/." "$dst/.claude/skills/"
+  if lay_down_lint_wrapper "$dst"; then
+    write_stamp "$dst"
+  else
+    warn "left tools/.cms-version unchanged — a legacy lint.py isn't running the managed checks,"
+    warn "  so advancing the stamp would falsely report 'in sync'. Migrate the wrapper first."
+  fi
+  log "managed tools + skills re-vendored; fork-local lint.py and extensions untouched"
+  log "(the version stamp covers $MANAGED_TOOLS; skill drift is refreshed but unstamped)"
+}
 
 install_monition() {
   step "monition (the takeaway store; SQLite backend by default)"
@@ -230,12 +323,17 @@ apply_to_target() {
   # Per-project machinery only. NOT cms_lint.py (CMS's own linter), and NOT the
   # session-archive tooling (session_tokens.py / extract_session.py): the archive is
   # global, so its tooling resolves through the ~/.claude/cms anchor, not a per-repo copy.
-  for t in craft_reminder.py autoflag.py lint_skeleton.py; do
+  for t in $MANAGED_TOOLS; do
     [ -f "$src/tools/$t" ] && cp "$src/tools/$t" "$dst/tools/$t"
   done
-  # The skeleton becomes the target's own linter; extend it in the marked slot.
-  [ -f "$dst/tools/lint.py" ] || cp "$src/tools/lint_skeleton.py" "$dst/tools/lint.py"
-  log "copied portable tools/ (lint_skeleton.py -> tools/lint.py)"
+  # lint.py is a thin fork-local wrapper that imports the managed checks (lint_skeleton.py);
+  # laid down once, never clobbered. The stamp lets the drift check detect when the fork is behind.
+  if lay_down_lint_wrapper "$dst"; then
+    write_stamp "$dst"
+  else
+    warn "left tools/.cms-version unwritten — migrate the legacy lint.py to the wrapper first."
+  fi
+  log "vendored managed tools/ + lint.py wrapper"
 
   # A portable pre-commit: run the target's linter, keep its store git-visible.
   cat > "$dst/.githooks/pre-commit" <<'HOOK'
@@ -285,11 +383,13 @@ DOCS
 # ---- entry ----------------------------------------------------------------
 
 main() {
-  local link=0 target=""
+  local link=0 update=0 refresh=0 target=""
   while [ $# -gt 0 ]; do
     case "$1" in
       -h|--help) usage 0 ;;
       --link-global) link=1 ;;
+      --update) update=1 ;;
+      --refresh-manifest) refresh=1 ;;
       --reinstall) REINSTALL=1 ;;
       -*) die "unknown option: $1 (see --help)" ;;
       *) [ -z "$target" ] || die "only one target path is allowed"; target="$1" ;;
@@ -297,7 +397,13 @@ main() {
     shift
   done
 
-  if [ -n "$target" ]; then
+  if [ "$refresh" = "1" ]; then
+    refresh_manifest
+  elif [ "$update" = "1" ]; then
+    [ "$link" = "1" ] && die "--update and --link-global are different modes"
+    [ -n "$target" ] || die "--update needs a target path: ./bootstrap.sh --update /path/to/fork"
+    update_target "$target"
+  elif [ -n "$target" ]; then
     [ "$link" = "1" ] && die "--link-global applies to in-place mode, not a target path"
     apply_to_target "$target"
   else

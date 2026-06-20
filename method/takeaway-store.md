@@ -23,10 +23,12 @@ evaluates against.
 ## Schema semantics
 
 **`takeaways`** — `kind` (gotcha/rule/preference) · `scope` (human-facing tags) ·
-`trigger_kind` + `trigger_spec` (comma-separated globs for edit_path; keywords for
-on_demand; empty for session_start) · `one_liner` (what gets injected — write it as a
-trap-warning) · `full_content` (the why + workaround; loaded only on demand —
-progressive disclosure) · `source` (origin session/commit) · two orthogonal
+`trigger_kind` + `trigger_spec` (comma-separated globs for edit_path; empty for
+session_start; for on_demand, `trigger_spec` keywords are a human-facing hint — **matching
+is semantic, not keyword**, see below) · `one_liner` (what gets injected — write it as a
+trap-warning, **and** it is the embedding match text, see below) · `full_content` (the why
++ workaround; loaded only on demand — progressive disclosure) · `source` (origin
+session/commit) · two orthogonal
 lifecycle axes (one enum per meaning — a status that encodes two things turns
 bookkeeping transitions into accidental kill switches):
 
@@ -60,11 +62,21 @@ Two entry points, one gate:
 Both entry points route candidates the same way — row vs. governance edit is
 decided by the tests in `method/lesson-routing.md`, not here.
 
-Designing `trigger_spec` is the craft step: ask "in what session would this lesson
-have saved me?" and write the spec that describes *that session's* footprint —
-not the broadest glob that contains it. The patterns are Python `fnmatch`, not
-shell globs: `*` crosses `/` (so `method/*` already matches nested paths and
-`**` adds nothing), and matching is case-sensitive on Linux.
+Designing the trigger is the craft step: ask "in what session would this lesson
+have saved me?" and describe *that session's* footprint — not the broadest match
+that contains it.
+
+- **edit_path** — `trigger_spec` is comma-separated Python `fnmatch` patterns (not
+  shell globs): `*` crosses `/` (so `method/*` already matches nested paths and `**`
+  adds nothing), case-sensitive on Linux.
+- **on_demand** — matching is **semantic**: the row's `one_liner + full_content` is
+  embedded (fastembed) and matched by cosine similarity against the prompt. The
+  `trigger_spec` keywords are a human-readable hint, **not** the match mechanism. So the
+  craft is in the **`one_liner`**, which does double duty — the injected trap-warning
+  *and* the match vector. Write it **embedding-dense**: front-load the *situation's*
+  vocabulary (the nouns/verbs a triggering prompt would use), not just a tidy summary. A
+  one-liner that reads well but omits the situation's words won't embed near the prompts
+  that should retrieve it. State the trap in the prompt-writer's language, then the fix.
 
 ## Rating (the eval path)
 

@@ -95,7 +95,42 @@ assembled from tiers.
 
 ## Roadmap (forward)
 
-All deferred work shares one philosophy with the firing engine: gated on accumulated
+### Active — Workstream 2: fleet propagation of shared standards + evergreen architecture-doc convention
+
+WS1 made decision-doc retirement machine-enforced and legible at the file, but shipped the
+check by **verbatim duplication** into each fork's `tools/lint.py` at bootstrap time. Forks
+extend `lint.py` locally and there is no downstream sync, so a later CMS opinion change never
+reaches an already-bootstrapped fork — opinion freezes at bootstrap time. WS2 closes that gap
+and lands the evergreen architecture-doc convention.
+
+**Design (decided — this is the standing call).**
+
+- *Propagation* — **vendored-copy + version-stamp + a `cms update` re-vendor verb + a
+  drift-warn check.** A fork keeps a vendored copy of the shared checks (zero-dep preserved —
+  runs with no CMS install present), stamped with a canonical version; `cms update` re-vendors
+  the latest; a check WARNs when a fork's stamp is behind a reachable canonical reference. A
+  disconnected fork (no canonical reachable) self-gates the check — honest dormancy,
+  no-worse-than-today. *Rejected:* a live-imported shared module (breaks zero-dep); a two-tier
+  always-current internal path (contradicts opt-in pickup + drift-detection).
+- *Backfill* — **scaffold as assisted-classification-with-confirmation**, never silent
+  auto-stamp: detect supersession signals → per-repo worklist → one-pass human confirmation
+  against that repo's own registry before any write. A false `decided` on a retired doc
+  affirmatively asserts "live" — the exact burn WS1 exists to prevent. *Rejected:* grandfather
+  (leaves the existing-fleet gap open).
+- *Evergreen architecture-doc convention* — a **fleet-wide doctype** (coarse module/seam
+  altitude — must express "module owns X; boundary to repo Y is here"; contract-anchored;
+  index-don't-duplicate, i.e. "see road.md §2" pointers are valid) plus a **mechanical
+  freshness check** (referenced paths/symbols resolve — without it "evergreen" is only a
+  promise). Two distinct homes: CMS's own current-architecture stays in this `DESIGN.md`; the
+  fleet-wide doctype is a *separate* convention forks adopt — "CMS uses DESIGN.md" must not
+  become "everyone uses DESIGN.md."
+
+**Validation (exit).** A fork behind canonical gets a WARN that `cms update` clears; a bare
+repo stays silent (self-gated); the backfill never writes without confirmation; the freshness
+check fails on an unresolved referenced path; CMS's own `DESIGN.md` validates under the new
+convention (dogfood). Execution: `docs/workstreams/fleet-standard-propagation/`.
+
+All deferred work below shares one philosophy with the firing engine: gated on accumulated
 evidence, never built speculatively.
 
 - **Retrieval routing maturation** — an eval-governed router choosing grep vs. semantic

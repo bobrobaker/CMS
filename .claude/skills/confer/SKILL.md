@@ -32,8 +32,10 @@ other side back at them. Every turn either moves the decision or ends the thread
   docs may simply not be written yet. Re-read after a beat before rebutting "your source
   doesn't exist / contradicts the record"; treat a freshly-absent cited authority like a
   torn write, not proof the other side is wrong.
-- **On a watch timeout, scan for *any* confer thread awaiting you before going idle.** A
-  cross-fire — both sides initiating different but entangled threads — leaves a baton
+- **On a watch timeout, scan for *any* confer thread awaiting you before going idle** —
+  across *both* candidate locations (landing zone + repo-root `handoffs/`, per the
+  Protocol-0 scan), never just one. A cross-fire — both sides initiating different but
+  entangled threads — leaves a baton
   waiting on a file you were never watching.
 
 ## The thread file
@@ -71,13 +73,24 @@ four-part opener does real convergence work — keep all four in Turn 1.
 0. **Role assignment.** Without `--listen` you are the **initiator** — but first check for
    an open `type: confer` thread on the same decision (match on topic) and reply there if
    one exists. With `--listen` you are the **listener** — never initiate; watch until a
-   thread appears awaiting your repo:
+   thread appears awaiting your repo. Scan **both** candidate locations — the landing zone
+   (if set) *and* the repo-root `handoffs/`, the same two-location resolution `handoff` /
+   `housekeep` use. Never a `:-.` cwd fallback: under an asymmetric `CMS_LANDING_ZONE` (set
+   for one session, unset for the other) it silently watches the wrong dir and misses the
+   thread.
    ```bash
-   d="${CMS_LANDING_ZONE:-.}/handoffs"; n=0
-   until grep -l '^type: confer' "$d"/*.md 2>/dev/null | xargs grep -l 'awaiting: <your-repo>' 2>/dev/null | grep -q .; do
-     [ $n -ge 27 ] && break; sleep 10; n=$((n+1))
-   done
+   n=0
+   scan() { for base in "${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs}" "$(git rev-parse --show-toplevel 2>/dev/null)/handoffs"; do
+     [ -d "$base" ] || continue
+     grep -l '^type: confer' "$base"/*.md 2>/dev/null | while read -r f; do
+       grep -l 'awaiting: <your-repo>' "$f" 2>/dev/null   # while-read, not xargs: empty input must run nothing (xargs would read stdin)
+     done
+   done; }
+   until [ -n "$(scan)" ]; do [ $n -ge 27 ] && break; sleep 10; n=$((n+1)); done
    ```
+   (The deepest fix for the asymmetry is environmental — set `CMS_LANDING_ZONE` in global
+   `~/.claude/settings.json` so every session inherits it; this two-location scan is the
+   defense-in-depth.)
    (run in background). On exit, do one final fresh scan before declaring nothing arrived
    — the timeout and the file's arrival can race — then fall back to async pick-up.
 0.5. **Pin the thread.** The moment you initiate or take a first turn, that file is *the*
@@ -116,9 +129,9 @@ four-part opener does real convergence work — keep all four in Turn 1.
    move on). Treat `resolved`/`needs-user` and a move-to-archive as wake conditions too, not
    just the baton flip.
 5. **Async mode.** A parked or cold thread is picked up like a handoff: at session start (or
-   when the user points at it), scan for `type: confer`, `status: open`,
-   `awaiting: <this repo>`. Reply, and re-enter live mode only if the user says the other
-   session is running.
+   when the user points at it), scan **both** candidate locations (per the Protocol-0 scan)
+   for `type: confer`, `status: open`, `awaiting: <this repo>`. Reply, and re-enter live mode
+   only if the user says the other session is running.
 
 ## Lifecycle
 

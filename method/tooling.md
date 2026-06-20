@@ -55,6 +55,18 @@ judgment where judgment lives.
 The linter also owns **derived views**: anything computable from the corpus is
 regenerated at commit time, never hand-maintained.
 
+**Propagation across forks.** The managed checks (`lint_skeleton.py` + the portable hooks)
+are vendored into each fork, where `tools/lint.py` is a thin fork-local wrapper that imports
+them and adds the fork's own checks via `FORK_CHECKS`. `./bootstrap.sh --update <fork>`
+re-vendors the managed set and re-stamps the fork's `tools/.cms-version`. A repo-level WARN
+check (`check_stamp_drift`) string-compares that stamp against the canonical
+`tools/.cms-manifest` committed in the CMS clone pointed at by **`$CMS_SRC`** — so a fork
+learns when its checks fell behind. Set `CMS_SRC` once as a machine-global env (in
+`~/.claude/settings.json`, like `$CMS_LANDING_ZONE`); unset, the drift check self-gates to
+silence (a disconnected fork — honest dormancy). Bash is the **sole hash producer** (it writes
+the committed manifest); the drift check only compares strings, never recomputes — so the two
+sides can't silently diverge.
+
 ### Tier 2 — hook at edit time (reminding)
 
 A PreToolUse hook fires when a write targets governed material and injects one line:
