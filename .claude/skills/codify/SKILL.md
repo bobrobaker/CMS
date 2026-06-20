@@ -21,18 +21,16 @@ future behavior, so the gate is absolute: **never write before explicit acceptan
      wired to your vault. *Test: the domain-and-environment strip.*
    - **This project** — neither; specific to the repo you're in. → step 2.
 
-2. **Route to the form** within that layer — first decisive test wins:
-   - **Owning surface** — an artifact that already fires at the right moment: a skill
-     (its lean `SKILL.md` gate, or a supporting file in the skill's dir for heavier
-     protocol), a hook, a prompt, a linter, or a governance surface named in CLAUDE.md
-     §Map. Procedure changes land here. A destination with its own admission rules
-     (caps, evidence gates) keeps them.
-   - **Describable trigger, no owner** — a takeaway row in the store (Monition is a
-     declared dependency, always present). Also the default when evidence is thin.
-   - **Every session** — a CLAUDE.md line, only if it earns being paid every session.
-   - **File-local** — a one-line gotcha next to the code it protects.
-
-   Then draft the **smallest durable edit** at that destination.
+2. **Route to the form** within that layer — run the route-to-form ladder in
+   `method/lesson-routing.md` (tests 2–4, first decisive wins): an **owning surface**
+   that already fires at the right moment (a skill's lean `SKILL.md` gate or a
+   supporting file in its dir, a hook, a prompt, a linter, a governance surface named
+   in CLAUDE.md §Map — procedure changes land here, and a destination keeps its own
+   admission rules); else a **describable-trigger** takeaway row (Monition is a
+   declared dependency, always present); else an **every-session** CLAUDE.md line. codify
+   adds one project-local tier the mining ladder lacks: **file-local** — a one-line
+   gotcha next to the code it protects. Then draft the **smallest durable edit** at that
+   destination.
 
 3. **Show it verbatim, then gate by blast radius.** Show the exact text, exact
    destination, and what behavior changes. A personal or project-local edit needs the

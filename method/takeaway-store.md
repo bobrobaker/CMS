@@ -29,14 +29,14 @@ is semantic, not keyword**, see below) · `one_liner` (what gets injected — wr
 trap-warning, **and** it is the embedding match text, see below) · `full_content` (the why
 + workaround; loaded only on demand — progressive disclosure) · `source` (origin
 session/commit) · two orthogonal
-lifecycle axes (one enum per meaning — a status that encodes two things turns
+axes (one column per meaning — a status that encodes two things turns
 bookkeeping transitions into accidental kill switches):
 
-- `status` — does this row fire. `active` fires; `retired` is kept for history,
-  never fires.
-- `mirror` — mirror-back state, independent of firing. `none` (default) ·
-  `candidate` (domain-free; queued for the mirror-back sweep) · `mirrored`
-  (landed upstream). A candidate keeps firing locally while it waits.
+- `status` — *whether* a row fires. `active` fires; `retired` is kept for
+  history, never fires.
+- `reach` + `origin_repo` — *where* it fires, independent of whether it fires.
+  The store is a single hub shared across repos: `project` (the default) fires
+  only where `origin_repo` matches the current repo; `general` fires in any repo.
 
 **`firings`** — one row per disclosure: takeaway, time, session, trigger kind, what
 matched (`trigger_context`), and a nullable `outcome` rated after the fact.

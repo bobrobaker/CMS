@@ -75,10 +75,11 @@ You are mining this session for takeaways. The store's semantics live in
    zone (`MONITION_STORE`), gitignored and unpublished — that Dolt commit *is* its
    version control, so there is nothing to stage into this repo's git. Any working-tree
    `git commit` of code/docs is separate from the store snapshot.
-6. **Routing a domain-free lesson — CMS is the upstream, so don't queue it.** A
-   `--mirror candidate` row waits for a sweep that pulls it *up*; CMS has no upstream.
-   Decide now instead: if the lesson would help a *fork* (it survives domain-stripping),
-   propose it into the shared machinery — a `method/` doc, a `starter/` template, or a
-   shipped takeaway — through the consent gate; if it only applies to building CMS or its
-   modules, leave it a local row (`mirror none`, the default). Reserve `--mirror candidate`
-   for downstream forks, where the upstream (CMS) is real.
+6. **Routing a domain-free lesson — CMS is the upstream, so promote, don't queue.** In
+   a downstream fork a transferable lesson is queued to `upstream-candidates.md` for the
+   mirror-back sweep that pulls it *up*; CMS has no upstream, so decide now instead. If
+   the lesson would help a *fork* (it survives domain-stripping), propose it into the
+   shared machinery — a `method/` doc, a `starter/` template, or a shipped takeaway —
+   through the consent gate; if it only applies to building CMS or its modules, leave it
+   a local row (`--reach project`, the default). A row meant to fire across every repo,
+   not just where authored, is `--reach general`.

@@ -26,7 +26,7 @@ row (test 3): it is the only tier with an eval loop, and it retires cleanly.
    glob, session start, or on-demand keywords → takeaway row. This is also the
    default when evidence is thin (one occurrence, an unconfirmed hunch): rows are
    measurable and reversible; governance prose is neither. Domain-free rows get
-   `--mirror candidate`.
+   `--reach general` (they fire in every repo, not just where authored).
 4. **Always-on.** S is "every session" → a CLAUDE.md line, only if it earns being
    paid for every session forever; otherwise make it a session_start row, which
    stays measurable. Pick the CLAUDE.md by **scope + audience**, not convenience —

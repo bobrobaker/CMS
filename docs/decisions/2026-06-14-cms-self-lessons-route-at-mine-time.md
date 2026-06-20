@@ -3,6 +3,12 @@ status: decided
 ---
 # 2026-06-14 · CMS routes its own lessons at mine-time — no candidate queue
 
+> **Mechanism update (2026-06-20).** The `mirror`/`candidate` axis this doc
+> references was retired in the v6 store cutover: "applies beyond this repo" is now
+> `reach='general'`, and the `mirror` column no longer exists — so the stale-flag
+> *Limitations* note below is moot (there is no flag left to go stale). The
+> *decision* stands unchanged: CMS routes its own lessons at mine-time, no queue.
+
 **Decision.** For the incubator's *own* mined lessons, drop the `mirror=candidate`
 queue. Route a domain-free lesson when it's mined: helps a generated project →
 propose into `payload/lessons.md.template` now; incubator/module-meta → local row
