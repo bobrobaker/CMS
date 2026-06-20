@@ -35,13 +35,16 @@ row (test 3): it is the only tier with an eval loop, and it retires cleanly.
      **ship to a forker**, who inherits this file. No personal or machine-local content.
    - **Global `~/.claude/CLAUDE.md`** (private, personal, all your repos, *not* shipped):
      personal cross-project rules — including **orientation about machinery you have
-     installed** ("what the takeaway store is; what a firing/flag means when you see one")
-     that must also serve *bare* repos the deployment never reached. This content has **no**
-     other home: it can't go in a public per-repo CLAUDE.md (a forker would inherit a fact
-     about *your* setup), and it isn't a contextual trap, so it isn't a store row.
-   - **No private, per-repo, versioned CLAUDE.md exists** (the local override is
-     gitignored + per-checkout). Private *contextual* guidance about the machinery →
-     a **store row** (test 3), which is private-but-versioned and fires by reach/origin.
+     installed** ("what the takeaway store is; what a firing/flag means when you see one").
+     This content has **no** other home: it can't go in a public per-repo CLAUDE.md (a
+     forker would inherit a fact about *your* setup), and a `session_start` row can't carry
+     it either — firing is wired *per-repo*, so a row never fires in the bare repos this
+     orientation must also serve. Global is the only layer loaded everywhere.
+   - **No private, *versioned*, per-repo CLAUDE.md home exists**: a committed per-repo
+     CLAUDE.md in a public/forkable repo is *public* (the forker gets it), and an
+     un-committed local file is neither shared nor reliably versioned. So private,
+     repo-scoped *contextual* guidance about the machinery → a **store row** (test 3),
+     which is private-but-versioned (the store's own history) and fires by reach/origin.
 5. **Mechanical shadow.** If violating X is mechanically checkable and unambiguous,
    add a linter check (ERROR) or hook alongside whatever prose landed above;
    ambiguous shadows are WARN. For semantic artifacts — shipped prompts, rubrics,
