@@ -21,7 +21,10 @@ MONITION_SRC_DEFAULT="$HOME/projects/monition"   # editable install if this exis
 
 # The CMS-managed portable tools — re-vendored wholesale by `--update` and covered by the
 # version stamp. The fork's tools/lint.py wrapper is NOT in this set (it's fork-local).
-MANAGED_TOOLS="craft_reminder.py autoflag.py lint_skeleton.py backfill_decision_status.py"
+# flag_corpus.py + its seed travel WITH autoflag.py: the Stop hook imports the former and
+# the lexical layer reads the latter, so a fork missing either silently loses tier-2's
+# self-improving half (the import fails open to regex-only).
+MANAGED_TOOLS="craft_reminder.py autoflag.py flag_corpus.py flag_corpus_seed.json lint_skeleton.py backfill_decision_status.py"
 
 # ---- output ---------------------------------------------------------------
 step() { printf '\n==> %s\n' "$*"; }

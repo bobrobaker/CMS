@@ -49,6 +49,29 @@ You are mining this session for takeaways. The store's semantics live in
      (snapshot them on their own first only if you want them out of an unrelated diff —
      `method/takeaway-store.md` §Dolt mechanics).
 
+0d. **Grow and tighten the flag corpus (the autoflagger's self-improving half).** The
+   tier-2 lexical layer (`tools/flag_corpus.py`) only learns here — the Stop hook is
+   read-only on the corpus, so every mutation is a mine-time act over *this* session.
+   Two passes, both consent-light (the corpus is a local matcher, not durable
+   governance — a wrong entry self-corrects via demerit, so don't run rows-grade
+   scrutiny per phrase). **Fail open:** if `flag_corpus.py` is absent, skip 0d entirely.
+   - **Recall — learn the misses.** For each *manual* flag this session (your inline
+     self-flags and `/flag` entries — not the ones tagged `Auto-flag`), and for each
+     admitted error 0b surfaced, find the response sentence that earned it and run
+     `python3 tools/flag_corpus.py score "<sentence>"`. **No hit → it's a miss:** the
+     matcher would not have caught it. Extract the *generalizable* phrasing (strip the
+     session's specifics — keep the trap-shaped trigger words) and
+     `flag_corpus.py add "<phrase>" <LABEL>`. A hit means it's already covered — skip.
+   - **Precision — judge the lexical fires.** For each `Auto-flag (lexical)` entry you
+     drained, you've just decided whether it became a real lesson or was noise:
+     `flag_corpus.py credit "<phrase>"` if it routed to a real row/governance change,
+     `flag_corpus.py demerit "<phrase>"` if it was noise. (The phrase is quoted in the
+     flag's `lexical match … on the learned phrase '<phrase>'` line.) Demerits decay a
+     mostly-noise entry below the firing floor; credits hold a useful one up.
+   - The corpus lives at `~/.claude/flag-corpus.json` (machine-local, like the flags
+     themselves) — there is **no** store-commit step for it; the JSON file *is* the
+     state. It is unrelated to the Monition Dolt commit at step 5.
+
    Then mine for new lessons:
 
 1. Review the session for lessons that are **reusable** (would recur) and

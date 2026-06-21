@@ -8,10 +8,13 @@ description: Mid-session flag for mine-session — mark something worth capturin
 You are capturing a mid-session observation so mine-session can act on it at wrap time.
 
 **Pipeline:** you (tier 1, semantic judgment) and `autoflag.py` (tier 2 — a Stop-hook
-regex backstop for admitted errors) both append to `~/.claude/session-flags/<id>.md`;
-`/mine-session` drains that file at wrap and routes each entry. The statusline **⚑**
-widget counts this queue. (The ❖ widget is unrelated — that counts monition firings,
-not /flag bookmarks.)
+backstop) both append to `~/.claude/session-flags/<id>.md`; `/mine-session` drains that
+file at wrap and routes each entry. Tier 2 has two LLM-free layers: a fixed
+admitted-error **regex floor**, and a **self-improving lexical matcher**
+(`tools/flag_corpus.py`) that fires on a strong match to a corpus of known flag-worthy
+phrasings and grows that corpus at mine-time from the manual flags it missed. The
+statusline **⚑** widget counts this queue. (The ❖ widget is unrelated — that counts
+monition firings, not /flag bookmarks.)
 
 ## What to do
 

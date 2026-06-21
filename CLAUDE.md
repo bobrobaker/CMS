@@ -62,11 +62,15 @@ use that machinery or improve it.
   hits a flag-worthy moment — you admit an error, a gotcha recurs, or a "we should make
   this a rule" realization lands — append a `/flag` entry inline (don't wait to be asked,
   don't break flow). You are the judge here: full context, free, more reliable than any
-  keyword match. `tools/autoflag.py` (the Stop hook) is only the tier-2 backstop for
-  admitted-error phrasing you skip; don't rely on it as the primary path. Routing:
-  admitted error / would-have-prevented-this → `GOVERNANCE`; reusable trigger lesson →
-  `MONITION`; large costly failure → `POSTMORTEM`; otherwise → `GENERAL`. `/mine-session`
-  drains them all at wrap (step 0a).
+  keyword match — and you are deterministic only if you remember, which under crowded
+  context you won't, so the backstop matters. `tools/autoflag.py` (the Stop hook) is the
+  tier-2 net for what you skip; don't rely on it as the primary path. It has two
+  LLM-free layers: a fixed admitted-error **regex floor**, and a **self-improving
+  lexical layer** (`tools/flag_corpus.py`) that scores the response against a corpus of
+  known flag-worthy phrasings and grows that corpus at mine-time from the manual flags it
+  missed (`/mine-session` step 0d). Routing: admitted error / would-have-prevented-this →
+  `GOVERNANCE`; reusable trigger lesson → `MONITION`; large costly failure → `POSTMORTEM`;
+  otherwise → `GENERAL`. `/mine-session` drains them all at wrap (step 0a).
 
 ## Workflow
 

@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Stop hook: deterministic backstop for the two-tier autoflagger.
+"""Stop hook: deterministic backstop for the autoflagger.
 
 Tier 1 is the agent itself — a CLAUDE.md rule has it self-flag flag-worthy moments
 inline (the semantic judgment, free, with full context). This script is tier 2: a
-mechanical net that catches one unambiguous, keyword-detectable class the agent might
-skip — an *admitted error* in the just-finished response (the same pattern
-`mine-session` step 0b hunts). It appends a GOVERNANCE flag to this session's file
-under `~/.claude/session-flags/<session_id>.md` — the same per-session store `/flag`
-writes and `/mine-session` drains (mine-session sweeps the whole directory).
+mechanical net for moments the agent skips when context is crowded. It has two layers,
+both LLM-free and deterministic:
 
-No LLM call: regex only. Three load-bearing properties, mirroring craft_reminder.py —
-fires at most once per matched snippet (a backstop that repeats becomes noise), never
-blocks the stop, and fails open (malformed input or any error exits silently; a
-bookmark has no business stopping work).
+  - a fixed **regex floor** — the unambiguous, keyword-detectable *admitted-error*
+    class (the same pattern `mine-session` step 0b hunts); and
+  - a **self-improving lexical layer** (`flag_corpus.py`) that scores the response
+    against a corpus of known flag-worthy phrasings and fires on a strong match. The
+    corpus is seeded from the regex patterns and grows at mine-time from the manual
+    flags this layer missed, so its recall converges on the phrasings that recur.
+
+Both append a flag to this session's file under `~/.claude/session-flags/<session_id>.md`
+— the same per-session store `/flag` writes and `/mine-session` drains. This hook is
+**read-only on the corpus**: all corpus mutation happens at mine-time (see
+`flag_corpus.py`), never here, where concurrent sessions would clobber a shared file.
+
+Three load-bearing properties, mirroring craft_reminder.py — fires at most once per
+matched snippet (a backstop that repeats becomes noise), never blocks the stop, and
+fails open (malformed input or any error exits silently; a bookmark has no business
+stopping work). The lexical layer is an optional import: if it can't load, the regex
+floor still fires.
 
 Wire in .claude/settings.json:
 
@@ -29,6 +39,14 @@ import re
 import sys
 from datetime import date
 from pathlib import Path
+
+# The lexical layer lives beside this script. Import is fail-open: a fork without it
+# (or a load error) degrades to the regex floor, never an error in the Stop hook.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    import flag_corpus
+except Exception:
+    flag_corpus = None
 
 FLAGS_DIR = Path.home() / ".claude" / "session-flags"
 
@@ -105,29 +123,52 @@ def main():
     if not text:
         return
 
-    m = _RX.search(text)
-    if not m:
-        return
-
-    summary = matched_sentence(text, m)
-
-    # Dedup: one flag per (session, matched-snippet). craft_reminder.py uses the same
-    # /tmp-marker idiom.
     session = str(data.get("session_id", "unknown"))
-    digest = hashlib.sha1((session + summary).encode("utf-8")).hexdigest()[:12]
+
+    # Layer 1 — regex floor: the unambiguous admitted-error class.
+    m = _RX.search(text)
+    if m:
+        _write_flag(session, "GOVERNANCE", matched_sentence(text, m),
+                    "the response contained an admitted-error signal mine-session 0b "
+                    "routes to a governance candidate")
+
+    # Layer 2 — self-improving lexical match (optional, read-only on the corpus).
+    if flag_corpus is not None:
+        try:
+            hit = flag_corpus.score_text(text)
+        except Exception:
+            hit = None
+        if hit:
+            _write_flag(session, hit["label"], hit["sentence"],
+                        f"lexical match (score {hit['score']}) on the learned phrase "
+                        f"{hit['phrase']!r}", layer="lexical")
+
+
+def _write_flag(session, label, summary, reason, layer="regex"):
+    """Append one auto-flag, deduped to once per (session, matched-snippet). Mirrors
+    craft_reminder.py's /tmp-marker idiom; fails open on every step."""
+    summary = " ".join((summary or "").split())[:160].rstrip()
+    if not summary:
+        return
+    # Dedup key is the punctuation/case-collapsed snippet, so the regex and lexical
+    # layers — which segment sentences differently (regex keeps the trailing '.', the
+    # lexical splitter drops it) — land on the SAME marker when they catch one moment.
+    # First writer wins; the regex floor runs first, so an admitted error stays one
+    # GOVERNANCE flag rather than a GOVERNANCE + lexical pair.
+    key = re.sub(r"[^a-z0-9]+", " ", summary.lower()).strip()
+    digest = hashlib.sha1((session + key).encode("utf-8")).hexdigest()[:12]
     marker = Path("/tmp") / f"autoflag_{session}_{digest}"
     if marker.exists():
-        return
+        return  # already flagged this snippet this session
     try:
         marker.touch()
     except Exception:
         pass  # if /tmp is unwritable we may double-flag; still better than silent loss
 
     entry = (
-        f"\n## [GOVERNANCE] Admitted error — {summary}\n"
-        f"> Auto-flagged by tools/autoflag.py (Stop-hook backstop): the response "
-        f"contained an admitted-error signal mine-session 0b routes to a governance "
-        f"candidate. Verify it's real before acting on it.\n"
+        f"\n## [{label}] Auto-flag ({layer}) — {summary}\n"
+        f"> Auto-flagged by tools/autoflag.py (Stop-hook backstop): {reason}. "
+        f"Verify it's real before acting on it.\n"
         f"> Flagged: {date.today().isoformat()}\n"
     )
     flags_file = FLAGS_DIR / f"{session}.md"

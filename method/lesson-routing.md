@@ -4,11 +4,20 @@
 codification (`/codify`) — after the lesson is drafted, before the consent-gate
 proposal. Output: a destination plus one line of reasoning, shown at the gate.
 
-**Version:** routing v2 (2026-06-19). This is the canonical text; monition's
+**Version:** routing v3 (2026-06-20). This is the canonical text; monition's
 mine-session skill template carries a domain-stripped copy (confer resolution,
 2026-06-12). Bump this version on any change to the tests and hand off to
 monition once — `monition sync` propagates from there. (v2: test 4 names the three
-CLAUDE.md scopes.)
+CLAUDE.md scopes. v3: the re-injection precondition below.)
+
+**Precondition — the home must re-inject at S.** A lesson is *captured* only if its
+destination is reloaded into context when S recurs: a row fires via its hook, a
+CLAUDE.md line loads every session, a skill or `method/` doc is read when that task
+runs, a linter runs at commit. A home that is **not** reloaded at S does not capture
+the lesson no matter how well it's written — most commonly a **commit message** (or a
+one-off doc nobody opens at S), which is invisible until deliberate git archaeology.
+"It's in the commit" is not capture. Reject a non-re-injecting home and fall to the
+next decisive test; prefer a row when nothing re-injecting fits.
 
 Run the tests in order; the first decisive hit wins. Under uncertainty, prefer the
 row (test 3): it is the only tier with an eval loop, and it retires cleanly.
