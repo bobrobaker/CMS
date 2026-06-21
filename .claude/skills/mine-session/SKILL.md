@@ -98,6 +98,7 @@ You are mining this session for takeaways. The store's semantics live in
    zone (`MONITION_STORE`), gitignored and unpublished — that Dolt commit *is* its
    version control, so there is nothing to stage into this repo's git. Any working-tree
    `git commit` of code/docs is separate from the store snapshot.
+<!-- forkgen:strip -->
 6. **Routing a domain-free lesson — CMS is the upstream, so promote, don't queue.** In
    a downstream fork a transferable lesson is queued to `upstream-candidates.md` for the
    mirror-back sweep that pulls it *up*; CMS has no upstream, so decide now instead. If
@@ -106,3 +107,12 @@ You are mining this session for takeaways. The store's semantics live in
    through the consent gate; if it only applies to building CMS or its modules, leave it
    a local row (`--reach project`, the default). A row meant to fire across every repo,
    not just where authored, is `--reach general`.
+<!-- forkgen:/strip -->
+<!-- forkgen:swap step6 -->
+
+<!--
+forkgen note: the block above is CMS-only (CMS is the upstream). The fork variant of
+step 6 is single-sourced in `mine-session.fork-overrides.md` and spliced in at the
+`forkgen:swap step6` marker by monition's regen. Edit the fork wording THERE, not here.
+-->
+

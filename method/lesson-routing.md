@@ -8,7 +8,10 @@ proposal. Output: a destination plus one line of reasoning, shown at the gate.
 mine-session skill template carries a domain-stripped copy (confer resolution,
 2026-06-12). Bump this version on any change to the tests and hand off to
 monition once — `monition sync` propagates from there. (v2: test 4 names the three
-CLAUDE.md scopes. v3: the re-injection precondition below.)
+CLAUDE.md scopes. v3: the re-injection precondition below.) The `routing vN` token on
+this line is a **parsed contract**: monition runs a dev-only parity test that reads it
+and fails when its mirrored `ROUTING_VERSION` has fallen behind — so keep the
+`**Version:** routing vN` format stable, and a bump here is the signal to re-strip.
 
 **Precondition — the home must re-inject at S.** A lesson is *captured* only if its
 destination is reloaded into context when S recurs: a row fires via its hook, a
