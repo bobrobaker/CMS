@@ -1,6 +1,6 @@
 ---
 name: housekeep
-description: Sweep the system's transient stores for orphaned or over-horizon residue — unwrapped sessions, dead-session flag files, stale handoffs and confer threads, abandoned worktrees, queued upstream-candidates — then auto-reap only the mechanical-and-safe class and propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
+description: Sweep the system's transient stores for orphaned or over-horizon residue — unwrapped sessions, dead-session flag files, stale handoffs and confer threads, abandoned worktrees, queued upstream-candidates, global skill-farm drift — then auto-reap only the mechanical-and-safe class and propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
 ---
 
 # housekeep
@@ -156,6 +156,36 @@ ones) is the audit cadence in `method/takeaway-store.md`, whose intended engine 
 ships, add a propose-tier section here that surfaces candidates by count (≥N noise & 0
 helpful; or active & 0 firings past X days). Until then, print one line so it isn't
 forgotten: `· G (monition row audit) deferred — pending monition score`.
+
+### H — Global skill-farm drift
+
+`~/.claude/skills/` is a symlink farm: each entry must be a symlink into a source repo
+(this clone, or the author's dotfiles). Two drift modes rot silently — a skill authored
+as a **real directory** here is tracked by no repo and lost on the next reinstall; a
+**dangling symlink** means its source moved or was deleted. Skip the whole category if
+the farm doesn't exist (a fork that never ran `bootstrap --link-global`).
+
+```bash
+farm=~/.claude/skills
+if [ -d "$farm" ]; then
+  for e in "$farm"/*; do
+    [ -e "$e" ] || [ -L "$e" ] || continue
+    if [ ! -L "$e" ]; then echo "LOOSE $e"          # real file/dir — tracked by nothing
+    elif [ ! -e "$e" ]; then echo "DANGLING $e -> $(readlink "$e")"  # source gone
+    fi
+  done 2>/dev/null
+fi
+```
+
+Both are **propose**, never auto-reap — each needs a judgment call and deleting either
+loses information:
+
+- `LOOSE` → propose: give it a tracked home, then symlink back. The home depends on the
+  skill — forkable machinery goes in this clone's `.claude/skills/`; a personal or
+  adviser-coupled skill goes in the author's dotfiles. Ask which; don't guess and don't
+  `rm` it (that destroys the only copy).
+- `DANGLING` → propose: repoint the link to the source's new location, or remove it if
+  the skill was retired. Never assume "delete" — a moved source wants a repoint.
 
 ## Output
 

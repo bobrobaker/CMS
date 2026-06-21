@@ -97,6 +97,7 @@ split, applied to the auditor's own write permissions.
   `.claude/settings.json`, governed paths set to the project's docs dir).
 - Tier 3's orphan/staleness slice is shipped as the `/housekeep` skill (transient-store
   residue: unwrapped sessions, dead-session flags, stale handoffs/confer threads,
-  abandoned worktrees). Its doc-drift / merge-candidate / always-on-leanness slice is
+  abandoned worktrees; plus global skill-farm drift — loose dirs or dangling links in
+  `~/.claude/skills/`). Its doc-drift / merge-candidate / always-on-leanness slice is
   still a manual "audit the docs against their own rules" prompt; codify that into a
   skill when the project runs it a third time.
