@@ -57,6 +57,13 @@ row (test 3): it is the only tier with an eval loop, and it retires cleanly.
      un-committed local file is neither shared nor reliably versioned. So private,
      repo-scoped *contextual* guidance about the machinery → a **store row** (test 3),
      which is private-but-versioned (the store's own history) and fires by reach/origin.
+
+   The same **scope + audience** split governs skill *files*, not just CLAUDE.md lines:
+   a skill that depends on machine-local infrastructure (an absolute path, a personal
+   store, an installed adviser) belongs in the **global** skill layer (`~/.claude/skills/`),
+   not a forkable repo's `.claude/skills/`. Global takes precedence over project-local, so
+   the enriched copy wins automatically — no per-repo coordination, and no machine-local
+   detail leaks into what a forker inherits.
 5. **Mechanical shadow.** If violating X is mechanically checkable and unambiguous,
    add a linter check (ERROR) or hook alongside whatever prose landed above;
    ambiguous shadows are WARN. For semantic artifacts — shipped prompts, rubrics,
