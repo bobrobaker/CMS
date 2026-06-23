@@ -24,6 +24,10 @@ principle: **maximize completed reversible work; surface only the judgment.**
 
 Resolve in order:
 
+0. **Project override** — if the current project's `CLAUDE.md` directs handoffs to a specific
+   location (e.g. "`/handoff` writes to `handoffs/`"), honor it: project instructions win, and a
+   project that keeps handoffs in-repo is a deliberate choice, not a misroute. Only when the
+   project says nothing about handoff placement do the defaults below apply.
 1. **`$CMS_LANDING_ZONE/handoffs/`** — if `CMS_LANDING_ZONE` is set, an absolute path to
    your cross-project store. Use this whenever it is reachable, regardless of which project
    the session is in.
