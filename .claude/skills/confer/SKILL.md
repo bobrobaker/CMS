@@ -96,6 +96,12 @@ four-part opener does real convergence work — keep all four in Turn 1.
 0.5. **Pin the thread.** The moment you initiate or take a first turn, that file is *the*
    thread for the session — record its path, watch and write only it, never rescan
    mid-exchange.
+   - **Surface it in the watch-grid (optional).** If `$SPAWN_STAGE` is set, make the
+     negotiation watchable alongside spawned/relay agents by tiling a live tail of the
+     pinned thread into the grid (magenta, `CONFER` badge):
+     `agent-spawn tile --into "$SPAWN_STAGE" --name "confer-$(basename "$pinned" .md)" --color magenta --origin CONFER -- tail -f "$pinned"`.
+     Remove it at close-out with `agent-spawn kill "confer-…"`. Inert when no grid is
+     configured — don't block the exchange on it.
 1. **Baton rule — write only when `awaiting:` names your repo; never edit prior turns.**
    - **Commit a turn as one write:** read fresh, compose the full updated file (prior
      turns untouched + your new `## Turn N` + frontmatter with `turn:` incremented and
@@ -106,6 +112,11 @@ four-part opener does real convergence work — keep all four in Turn 1.
    - **A turn ending in a user question holds the baton.** Set `awaiting: user` (status
      stays `open`), ask the user in your session, fold in their answer, *then* flip to the
      other repo. (Lighter than a §3 escalation — you resume the negotiation yourself.)
+   - **One exchange, one user-input owner.** When `awaiting: user`, only the side that set
+     it engages the human. The *other* side, seeing `awaiting: user`, **keeps holding and
+     never also prompts the user** for the same decision — a second session soliciting the
+     same human is redundant and races the answer. If a steer arrives, the owning side folds
+     it in and flips the baton; the other side just waits.
 2. **Converge-first.** Before drafting a reply, ask: do we now agree, or is the gap
    preference not substance? If agree — don't take another turn. Write `## Resolution` (the
    decision in one paragraph + who implements what), `status: resolved`, `awaiting: none`.
