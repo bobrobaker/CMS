@@ -26,6 +26,21 @@ MONITION_SRC_DEFAULT="$HOME/projects/monition"   # editable install if this exis
 # self-improving half (the import fails open to regex-only).
 MANAGED_TOOLS="craft_reminder.py autoflag.py flag_corpus.py flag_corpus_seed.json lint_skeleton.py backfill_decision_status.py"
 
+# This script's own CMS clone — where the deploy-time helper tools (deploy_settings.py) live.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DEPLOY_SETTINGS="$SELF_DIR/tools/deploy_settings.py"
+
+# monition extras. The registered MCP server (.mcp.json -> `monition mcp-serve`) is dead on
+# arrival without the `mcp` extra, so install it by default; --embed adds the semantic extra,
+# --no-mcp drops to the base package. Mutated by flag parsing in main().
+MONITION_EXTRAS="[mcp]"
+
+# Deploy modifiers, set by flags in main() and read by the mode functions.
+HUB_OVERRIDE=""        # --hub PATH : join this exact hub (overrides env)
+STANDALONE=0           # --standalone : force a per-repo store (ignore any hub env)
+APPROVE_MCP=0          # --approve-mcp : write the project-MCP approval into settings.local.json
+FIXPATH=0              # --fix-path : ensure ~/.local/bin is on PATH
+
 # ---- output ---------------------------------------------------------------
 step() { printf '\n==> %s\n' "$*"; }
 log()  { printf '    %s\n' "$*"; }
@@ -33,7 +48,29 @@ warn() { printf '  ! %s\n' "$*" >&2; }
 die()  { printf '\nError: %s\n' "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  cat <<'USAGE'
+bootstrap.sh — install the CMS context-management machinery.
+
+Modes:
+  ./bootstrap.sh                 in-place: set this clone up to run the machinery
+  ./bootstrap.sh --link-global   in-place, and symlink shared skills into ~/.claude
+  ./bootstrap.sh /path/to/repo   apply-to-target: copy the machinery into another repo
+  ./bootstrap.sh --update /path  re-vendor managed machinery into an already-bootstrapped fork
+  ./bootstrap.sh --doctor [path] health-check a deployed repo (target, else cwd); writes nothing
+
+Deploy modifiers (in-place / apply-to-target):
+  --hub PATH        join this exact takeaway-store hub (overrides $MONITION_STORE)
+  --standalone      force a per-repo store (ignore any hub env)
+  --embed           also install monition's semantic [embed] extra
+  --no-mcp          install the base monition package (skip the [mcp] extra)
+  --approve-mcp     write the project-MCP approval into .claude/settings.local.json
+  --fix-path        ensure ~/.local/bin is on your PATH (edits your shell profile)
+  --reinstall       reinstall the monition CLI even if already on PATH
+
+In-place is the primary path: fork/clone CMS, run this, and the machinery is live.
+Everything is idempotent — safe to re-run. It never touches ~/.claude unless you pass
+--link-global. The /deploy skill drives this end to end and walks the interactive steps.
+USAGE
   exit "${1:-0}"
 }
 
@@ -138,28 +175,32 @@ install_monition() {
     return
   fi
   local src="${MONITION_SRC:-$MONITION_SRC_DEFAULT}"
+  local ex="$MONITION_EXTRAS"   # e.g. "[mcp]" / "[mcp,embed]" / "" — appended to the spec
+  log "extras: ${ex:-<none, base package>}"
 
   # Install in isolation — never `pip install` into the system Python, which
   # modern distros refuse (PEP 668, "externally-managed-environment"). Prefer a
   # dedicated CLI-tool installer; fall back to a hand-rolled venv if none exists.
+  # Extras ride the spec via standard pip syntax ("path[extra]" / "monition[extra] @ url").
   if command -v uv >/dev/null 2>&1; then
-    if [ -d "$src" ]; then uv tool install --editable "$src"; else uv tool install "monition @ $MONITION_GIT"; fi
+    if [ -d "$src" ]; then uv tool install --editable "$src$ex"; else uv tool install "monition$ex @ $MONITION_GIT"; fi
     log "installed via uv tool"
   elif command -v pipx >/dev/null 2>&1; then
-    if [ -d "$src" ]; then pipx install --editable "$src"; else pipx install "monition @ $MONITION_GIT"; fi
+    if [ -d "$src" ]; then pipx install --editable "$src$ex"; else pipx install "monition$ex @ $MONITION_GIT"; fi
     log "installed via pipx"
   else
-    install_monition_venv "$src"
+    install_monition_venv "$src" "$ex"
   fi
 
   command -v monition >/dev/null 2>&1 \
-    || warn "monition installed but not on PATH — ensure ~/.local/bin is on your PATH"
+    || warn "monition installed but not on PATH — ensure ~/.local/bin is on your PATH (--fix-path)"
 }
 
 # Fallback when neither uv nor pipx is present: a dedicated virtual environment
 # plus a launcher symlinked onto PATH. No extra tools, no writes to system Python.
 install_monition_venv() {
   local src="$1"
+  local ex="${2:-}"   # extras suffix, e.g. "[mcp]"
   local venv="${MONITION_VENV:-$HOME/.local/share/monition/venv}"
   local bindir="$HOME/.local/bin"
   log "no uv/pipx found — installing into an isolated venv at $venv"
@@ -168,10 +209,10 @@ install_monition_venv() {
   fi
   if [ -d "$src" ]; then
     log "installing editable from $src"
-    "$venv/bin/pip" install -q -e "$src"
+    "$venv/bin/pip" install -q -e "$src$ex"
   else
     log "installing from $MONITION_GIT"
-    "$venv/bin/pip" install -q "monition @ $MONITION_GIT"
+    "$venv/bin/pip" install -q "monition$ex @ $MONITION_GIT"
   fi
   mkdir -p "$bindir"
   ln -sf "$venv/bin/monition" "$bindir/monition"
@@ -204,11 +245,17 @@ arm_hooks() {
 
 init_store() {
   local root="$1"
-  # Resolve a configured hub: $MONITION_STORE wins, else CMS maps $CMS_LANDING_ZONE.
-  # A hub means "join this repo to the shared store" — instrument only, no per-repo store
-  # (the fused `monition init` would litter a dead store the hub-wired hooks then ignore).
+  # Resolve a configured hub: --hub wins, then $MONITION_STORE, then CMS maps $CMS_LANDING_ZONE.
+  # --standalone forces a per-repo store regardless of env. A hub means "join this repo to the
+  # shared store" — instrument only, no per-repo store (the fused `monition init` would litter a
+  # dead store the hub-wired hooks then ignore).
   local hub=""
-  if [ -n "${MONITION_STORE:-}" ]; then
+  if [ "$STANDALONE" = "1" ]; then
+    hub=""
+    log "--standalone: creating a per-repo store (ignoring any hub env)"
+  elif [ -n "$HUB_OVERRIDE" ]; then
+    hub="$HUB_OVERRIDE"
+  elif [ -n "${MONITION_STORE:-}" ]; then
     hub="$MONITION_STORE"
   elif [ -n "${CMS_LANDING_ZONE:-}" ]; then
     hub="$CMS_LANDING_ZONE/monition"
@@ -289,6 +336,150 @@ link_global() {
   log "   see archive/semantic/runbook.md for the MCP registration)"
 }
 
+# Ensure ~/.local/bin (where the monition launcher lands) is on PATH — bootstrap otherwise
+# only warns. Idempotent: no-op if already on PATH or already appended.
+fix_path() {
+  local bindir="$HOME/.local/bin"
+  case ":${PATH}:" in
+    *":$bindir:"*) log "~/.local/bin already on PATH"; return ;;
+  esac
+  local rc
+  case "${SHELL:-}" in
+    *zsh)  rc="$HOME/.zshrc" ;;
+    *bash) rc="$HOME/.bashrc" ;;
+    *)     rc="$HOME/.profile" ;;
+  esac
+  if [ -f "$rc" ] && grep -q 'CMS: ensure ~/.local/bin on PATH' "$rc"; then
+    log "PATH line already in $rc — open a new shell (or 'source $rc') to pick it up"
+    return
+  fi
+  printf '\n# CMS: ensure ~/.local/bin on PATH\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
+  log "added ~/.local/bin to PATH in $rc — run 'source $rc' or open a new shell"
+}
+
+# Write the project-MCP approval (settings.local.json, gitignored) so the monition MCP server is
+# enabled — it never travels with a clone, so a fresh deploy must assert it locally.
+approve_mcp() {
+  local root="$1"
+  if python3 "$DEPLOY_SETTINGS" approve-mcp "$root"; then :; else
+    warn "could not write MCP approval (approve it in-session instead)"
+  fi
+}
+
+# Merge the CMS harness hooks into a target's settings.json, honoring the global-archive pattern:
+# craft_reminder is always per-repo; autoflag/session_tokens are wired per-repo ONLY when the
+# global ~/.claude/cms anchor is absent (else the global hooks own them). When wiring them
+# per-repo, vendor session_tokens.py too (autoflag.py is already in the managed set).
+wire_harness_hooks() {
+  local dst="$1" anchor="absent"
+  [ -e "$HOME/.claude/cms" ] && anchor="present"
+  if [ "$anchor" = "absent" ] && [ -f "$SELF_DIR/tools/session_tokens.py" ]; then
+    cp "$SELF_DIR/tools/session_tokens.py" "$dst/tools/session_tokens.py"
+    log "vendored session_tokens.py (no global ~/.claude/cms archive anchor)"
+  fi
+  if python3 "$DEPLOY_SETTINGS" wire-harness-hooks "$dst" --global-archive "$anchor"; then :; else
+    warn "could not wire harness hooks into $dst/.claude/settings.json"
+  fi
+}
+
+# Read-only health check of a deployed repo: does the takeaway/MCP/archive loop actually work?
+# Writes nothing. The /deploy skill parses this; a human reads it. PASS/WARN/FAIL per line.
+doctor() {
+  local root
+  root="$(git -C "${1:-$PWD}" rev-parse --show-toplevel 2>/dev/null)" \
+    || die "--doctor: not inside a git repo (pass a path: ./bootstrap.sh --doctor /path/to/repo)"
+  printf 'CMS deploy doctor — %s\n\n' "$root"
+  local pass=0 warnc=0 failc=0
+  _chk() {  # $1=PASS|WARN|FAIL  $2=name  $3=detail
+    printf '  %-4s  %-15s  %s\n' "$1" "$2" "$3"
+    case "$1" in
+      PASS) pass=$((pass + 1)) ;;
+      WARN) warnc=$((warnc + 1)) ;;
+      FAIL) failc=$((failc + 1)) ;;
+    esac
+  }
+
+  local mon interp
+  mon="$(command -v monition 2>/dev/null || true)"
+  if [ -n "$mon" ]; then _chk PASS monition-cli "$mon"; else
+    _chk FAIL monition-cli "not on PATH — run ./bootstrap.sh (then --fix-path)"; fi
+
+  # mcp/embed extras — check via monition's OWN interpreter; never start the server (it blocks)
+  if [ -n "$mon" ]; then
+    interp="$(head -1 "$mon" 2>/dev/null | sed -n 's/^#! *//p')"
+    case "$interp" in
+      *python*)
+        if "$interp" -c 'import mcp' >/dev/null 2>&1; then
+          _chk PASS mcp-extra "monition[mcp] importable"
+        else
+          _chk FAIL mcp-extra "mcp extra missing — the .mcp.json server is dead; reinstall monition[mcp]"
+        fi
+        if "$interp" -c 'import fastembed' >/dev/null 2>&1; then
+          _chk PASS embed-extra "monition[embed] importable"
+        else
+          _chk WARN embed-extra "embed extra absent — semantic search_sessions/match off (--embed)"
+        fi ;;
+      *) _chk WARN mcp-extra "couldn't locate monition's interpreter to check extras" ;;
+    esac
+  fi
+
+  local hub="${MONITION_STORE:-}"
+  [ -z "$hub" ] && [ -n "${CMS_LANDING_ZONE:-}" ] && hub="$CMS_LANDING_ZONE/monition"
+  if [ -n "$hub" ]; then
+    if [ -d "$hub/.dolt" ] || [ -f "$hub/store.db" ]; then _chk PASS store "hub: $hub"; else
+      _chk WARN store "hub configured but no store at $hub yet"; fi
+  elif [ -d "$root/monition/.dolt" ] || [ -f "$root/monition/store.db" ]; then
+    _chk PASS store "per-repo: $root/monition"
+  else
+    _chk FAIL store "no store (hub env unset, no $root/monition) — run bootstrap"
+  fi
+
+  if [ -n "${MONITION_STORE:-}" ] || [ -n "${CMS_LANDING_ZONE:-}" ]; then
+    _chk PASS hub-env "set"
+  else
+    _chk WARN hub-env "unset — standalone repo (export CMS_LANDING_ZONE for a shared hub)"
+  fi
+
+  if [ -f "$root/.mcp.json" ]; then _chk PASS mcp-json "present"; else
+    _chk WARN mcp-json "absent — monition MCP server not registered here"; fi
+
+  local sl="$root/.claude/settings.local.json"
+  if [ -f "$sl" ] && grep -Eq '"enableAllProjectMcpServers": *true|"monition"' "$sl" 2>/dev/null; then
+    _chk PASS mcp-approved "settings.local.json enables the project MCP"
+  else
+    _chk WARN mcp-approved "not approved — rerun with --approve-mcp (or approve in-session)"
+  fi
+
+  local s="$root/.claude/settings.json"
+  if [ -f "$s" ] && grep -q 'autoflag.py' "$s" 2>/dev/null; then
+    _chk PASS harness-hooks "wired per-repo"
+  elif [ -e "$HOME/.claude/cms" ]; then
+    _chk PASS harness-hooks "served globally via ~/.claude/cms"
+  else
+    _chk WARN harness-hooks "autoflag/session_tokens unwired (no per-repo hook, no ~/.claude/cms)"
+  fi
+
+  if [ -f "$s" ] && grep -q 'monition prompt-hook' "$s" 2>/dev/null; then
+    _chk PASS monition-hooks "fire/prompt/session present"
+  else
+    _chk WARN monition-hooks "absent — run bootstrap (init_store → instrument)"
+  fi
+
+  if [ "$(git -C "$root" config core.hooksPath 2>/dev/null)" = ".githooks" ]; then
+    _chk PASS githooks "core.hooksPath=.githooks"
+  else
+    _chk WARN githooks "not armed — git config core.hooksPath .githooks"
+  fi
+
+  case ":${PATH}:" in
+    *":$HOME/.local/bin:"*) _chk PASS local-bin "on PATH" ;;
+    *) _chk WARN local-bin "~/.local/bin not on PATH (--fix-path)" ;;
+  esac
+
+  printf '\n  %d pass · %d warn · %d fail\n' "$pass" "$warnc" "$failc"
+  [ "$failc" -eq 0 ] || printf '  fails break the takeaway/MCP loop — the /deploy skill walks the fixes\n'
+}
+
 # ---- modes ----------------------------------------------------------------
 
 in_place() {
@@ -303,7 +494,11 @@ in_place() {
   step "takeaway store"
   init_store "$root"
   report_landing_zone "$root"
+  if [ "$FIXPATH" = "1" ]; then step "PATH"; fix_path; fi
+  if [ "$APPROVE_MCP" = "1" ]; then step "MCP approval"; approve_mcp "$root"; fi
   [ "$link" = "1" ] && link_global "$root"
+  step "health check"
+  doctor "$root"
   step "done"
   log "machinery is live. Next: open this repo and start a session."
   [ "$link" = "1" ] || log "(to single-source your global skills from this clone: ./bootstrap.sh --link-global)"
@@ -376,9 +571,14 @@ DOCS
   arm_hooks "$dst"
   step "takeaway store"
   init_store "$dst"
+  step "harness hooks"
+  wire_harness_hooks "$dst"
   step "landing zone"
   log "set 'export CMS_LANDING_ZONE=/path/to/store' to share a cross-project home"
-
+  if [ "$FIXPATH" = "1" ]; then step "PATH"; fix_path; fi
+  if [ "$APPROVE_MCP" = "1" ]; then step "MCP approval"; approve_mcp "$dst"; fi
+  step "health check"
+  doctor "$dst"
   step "done"
   log "fill the {{PLACEHOLDERS}} in $dst/CLAUDE.md (and road.md, debt.md), then commit."
 }
@@ -386,21 +586,36 @@ DOCS
 # ---- entry ----------------------------------------------------------------
 
 main() {
-  local link=0 update=0 refresh=0 target=""
+  local link=0 update=0 refresh=0 doctor_mode=0 embed=0 nomcp=0 target=""
   while [ $# -gt 0 ]; do
     case "$1" in
       -h|--help) usage 0 ;;
       --link-global) link=1 ;;
       --update) update=1 ;;
       --refresh-manifest) refresh=1 ;;
+      --doctor) doctor_mode=1 ;;
       --reinstall) REINSTALL=1 ;;
+      --hub) HUB_OVERRIDE="${2:-}"; [ -n "$HUB_OVERRIDE" ] || die "--hub needs a path"; shift ;;
+      --standalone) STANDALONE=1 ;;
+      --embed) embed=1 ;;
+      --no-mcp) nomcp=1 ;;
+      --approve-mcp) APPROVE_MCP=1 ;;
+      --fix-path) FIXPATH=1 ;;
       -*) die "unknown option: $1 (see --help)" ;;
       *) [ -z "$target" ] || die "only one target path is allowed"; target="$1" ;;
     esac
     shift
   done
 
-  if [ "$refresh" = "1" ]; then
+  # Resolve monition extras from flags: [mcp] by default, +embed, or base with --no-mcp.
+  local extras=""
+  [ "$nomcp" = "1" ] || extras="mcp"
+  [ "$embed" = "1" ] && extras="${extras:+$extras,}embed"
+  if [ -n "$extras" ]; then MONITION_EXTRAS="[$extras]"; else MONITION_EXTRAS=""; fi
+
+  if [ "$doctor_mode" = "1" ]; then
+    doctor "$target"
+  elif [ "$refresh" = "1" ]; then
     refresh_manifest
   elif [ "$update" = "1" ]; then
     [ "$link" = "1" ] && die "--update and --link-global are different modes"

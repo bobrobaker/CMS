@@ -95,6 +95,14 @@ assembled from tiers.
   unknown harness record types).
 - **The landing zone** — `$CMS_LANDING_ZONE` else the in-repo `landing/` fallback, so a
   fresh fork has a zero-config home for cross-project decisions and handoffs.
+- **Deploy** — one `/deploy` skill is the entry point after a fork: it drives `bootstrap.sh`
+  (the deterministic installer — monition + the `[mcp]` extra, hook arming, store create/join,
+  hook merge, MCP approval, PATH, `--doctor` health check; JSON surgery in
+  `tools/deploy_settings.py`) and supplies the judgement bash can't (fork-vs-existing detection,
+  doctor triage, interactive steps). Method in `method/deploy.md`. The harness hooks wire
+  **global-when-applicable** (the `~/.claude/cms` anchor present → archive hooks stay global) and
+  **self-sufficient otherwise**, so a wired repo runs the loop regardless — see
+  `docs/decisions/2026-06-28-one-skill-deploy-and-conditional-harness-hooks.md`.
 
 ## Roadmap (forward)
 

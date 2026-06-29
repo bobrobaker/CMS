@@ -8,6 +8,8 @@ python3 "$ROOT/tools/cms_lint.py" || exit 1
 python3 "$ROOT/tools/test_lint_mirror.py" >/dev/null || { python3 "$ROOT/tools/test_lint_mirror.py"; exit 1; }
 # Behavioral guard for the self-improving lexical flag matcher. See tools/test_flag_corpus.py.
 python3 "$ROOT/tools/test_flag_corpus.py" >/dev/null || { python3 "$ROOT/tools/test_flag_corpus.py"; exit 1; }
+# Behavioral guard for the deploy-time settings merges (merge-not-clobber, global-archive split).
+python3 "$ROOT/tools/test_deploy_settings.py" >/dev/null || { python3 "$ROOT/tools/test_deploy_settings.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
 # Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).

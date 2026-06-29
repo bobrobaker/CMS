@@ -11,11 +11,15 @@ project then disconnect — you fork or clone it, run `bootstrap.sh`, and own th
 
 ## How you use it
 
-1. **Fork or clone, then `./bootstrap.sh`.** It installs Monition (the takeaway store, a
-   declared dependency — SQLite backend by default, no extra install), arms the pre-commit
-   hook, initializes the store, and points you at a landing zone. Add `--link-global` to
-   symlink the shared skills into your `~/.claude` so they're live in every session
-   (it backs up anything it would replace).
+1. **Fork or clone, then run `/deploy`** (or `./bootstrap.sh` directly). The deploy skill is
+   the one entry point: it drives `bootstrap.sh` and ends with a `--doctor` health check —
+   installing Monition with the MCP extra (the takeaway store, a declared dependency — SQLite
+   backend by default), arming the pre-commit hook, creating or joining the store, wiring and
+   approving the MCP server, and walking you through anything interactive. `./bootstrap.sh`
+   alone runs the deterministic parts; add `--link-global` to symlink the shared skills into
+   your `~/.claude` so they're live in every session (it backs up anything it would replace).
+   Re-run either anytime — every step is idempotent, and `./bootstrap.sh --doctor` reports the
+   live state without writing.
 2. **Work.** The machinery runs as you go: the pre-commit linter blocks mechanical
    violations, matching takeaways inject as context, and the skills (`/dispatch`,
    `/handoff`, `/codify`, `/mine-session`, …) are available.
@@ -40,11 +44,14 @@ project then disconnect — you fork or clone it, run `bootstrap.sh`, and own th
 
 ## Two ways in
 
-- **Fork/clone + `./bootstrap.sh`** — CMS *is* your project's context-management layer;
+Both run through `/deploy` (or `bootstrap.sh` directly), which detects which case you're in:
+
+- **Fork/clone + `/deploy`** — CMS *is* your project's context-management layer;
   you build on top of it and own the machinery as a single source.
-- **`./bootstrap.sh <path>`** — apply-to-target: copy the machinery and `starter/`
-  templates into an existing repo (accepting the drift a copy implies; for your own
-  projects, prefer fork-and-bootstrap so there's one source).
+- **`/deploy <path>`** (`./bootstrap.sh <path>`) — apply-to-target: copy the machinery and
+  `starter/` templates into an existing repo (accepting the drift a copy implies; for your own
+  projects, prefer fork-and-bootstrap so there's one source). The harness hooks wire in
+  global-when-available, self-sufficient otherwise, so a wired repo runs the loop either way.
 
 There is no generator to interview you and no per-project "profile" to pick. The machinery
 is single-sourced; delete what your fork doesn't need.
