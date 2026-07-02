@@ -21,11 +21,14 @@ other side back at them. Every turn either moves the decision or ends the thread
   same decision (match on *topic*, not filename); if a race still happens, the
   earlier-created file wins — the other initiator deletes its thread and replies on the
   survivor.
-- **A baton naming you with no complete turn behind it is a torn write, not your cue.**
-  If `awaiting:` is you but the matching `## Turn N` body is missing or truncated, you
-  woke mid-write — wait ~2s and re-read **bypassing cached file state** (a shell
-  `grep`/`sed`, or re-read after a beat) before acting. Re-reading through a stale view
-  just re-confirms a turn that is already there.
+- **A baton naming you with no `<!-- END TURN N -->` marker for that N is a torn write,
+  not your cue.** Don't infer completeness from the body "looking" done — check for the
+  literal trailing marker matching the frontmatter's current `turn:`. Missing, or naming a
+  lower N, means you woke mid-write — wait ~2s and re-read **bypassing cached file state**
+  (a shell `grep`/`sed`, or re-read after a beat) before acting. Re-reading through a stale
+  view just re-confirms a turn that is already there. Writers commit via temp-file + atomic
+  rename (§1) so this should be rare; the marker is the deterministic check, the
+  wait-and-reread is the recovery action when it fires.
 - **A cited doc that looks missing or contradictory mid-confer may be mid-write, not
   wrong.** The other live session edits its own repo's docs (decisions, charters) *as it
   argues* — so a cited authority that's absent, empty, or seemingly contradicts ratified
@@ -48,6 +51,7 @@ fallback only works if both sessions can see that path). Filename:
 ```yaml
 ---
 type: confer
+id: <8-hex>          # minted once by the initiator: sha256(topic+between+created)[:8]; never changes — the real identity
 topic: <one line — the decision to be made>
 between: [<repo-a>, <repo-b>]
 created: YYYY-MM-DD
@@ -58,10 +62,16 @@ status: open        # open | resolved | needs-user
 ---
 ```
 
-**Identity:** your repo name is the basename of your repo root (`git rev-parse
---show-toplevel`) — the name used in `between:` and `awaiting:`. A file is a confer thread
-for you **only if** its frontmatter is `type: confer` and `between:` includes your repo. A
-handoff file is never a confer thread, whatever its name suggests.
+**Identity is the `id:`, not the path or `between:`.** Filenames and `between:` are
+human-readable filters, not identity — a topic-slug can collide, and a file can be
+renamed, archived, or (rarely) recreated at the same path for a different exchange. A file
+is a confer thread for you **only if** its frontmatter is `type: confer` and `between:`
+includes your repo — that gates *whether you may touch it at all*. But once you've pinned
+a specific exchange (§0.5), every later read verifies the file's `id:` still equals the id
+you pinned, not just that something lives at the expected path — that gates *whether it's
+still the same one*. A handoff file is never a confer thread, whatever its name suggests.
+Your repo name is the basename of your repo root (`git rev-parse --show-toplevel`) — the
+name used in `between:` and `awaiting:`.
 
 **A good turn** states four things: **position**, the **load-bearing reasons** (drop the
 rest), **what would change your mind**, and **concrete questions** for the other side. The
@@ -93,9 +103,23 @@ four-part opener does real convergence work — keep all four in Turn 1.
    defense-in-depth.)
    (run in background). On exit, do one final fresh scan before declaring nothing arrived
    — the timeout and the file's arrival can race — then fall back to async pick-up.
-0.5. **Pin the thread.** The moment you initiate or take a first turn, that file is *the*
-   thread for the session — record its path, watch and write only it, never rescan
-   mid-exchange.
+
+   **Initiator: mint the id.** When you create the thread, generate `id:` once — e.g.
+   `id=$(printf '%s' "$topic$between$(date +%F)" | sha256sum | cut -c1-8)` — and never
+   regenerate it; it's the thread's identity for its whole life, independent of filename
+   and surviving any later rename/archive.
+
+   **Scoped listener: lock to a given id, if you have one.** If a brief/handoff handed you
+   an `expected-thread-id:` for this exchange (see Lifecycle), tighten the scan to also
+   require `id: <expected-thread-id>` — a `type: confer` + `awaiting: <you>` hit whose
+   `between:` merely *looks* right can belong to a different exchange entirely (a same repo
+   pair on a different topic, or a same-named repo in a different pairing); see Gotchas.
+0.5. **Pin the thread — by id, not just path.** The moment you initiate or take a first
+   turn, record both the file's path *and* its `id:` — that pair is *the* thread for the
+   session. Watch and write only that path, never rescan mid-exchange, and on every read
+   before a write, confirm the file's `id:` still equals the pinned id; a mismatch means
+   the path was recreated for a different exchange or you pinned the wrong file to begin
+   with — stop and re-resolve from the brief/topic, don't write.
    - **Surface it in the watch-grid (optional).** If `$SPAWN_STAGE` is set, make the
      negotiation watchable alongside spawned/relay agents by tiling a live tail of the
      pinned thread into the grid (magenta, `CONFER` badge):
@@ -103,10 +127,16 @@ four-part opener does real convergence work — keep all four in Turn 1.
      Remove it at close-out with `agent-spawn kill "confer-…"`. Inert when no grid is
      configured — don't block the exchange on it.
 1. **Baton rule — write only when `awaiting:` names your repo; never edit prior turns.**
-   - **Commit a turn as one write:** read fresh, compose the full updated file (prior
-     turns untouched + your new `## Turn N` + frontmatter with `turn:` incremented and
-     `awaiting:` flipped), write once. If you must edit in place, **flip the baton last** —
-     the flip is the commit.
+   - **Commit a turn as one atomic write, ending in an end-of-turn marker.** Read fresh,
+     compose the full updated file — prior turns untouched + your new `## Turn N` (ending
+     with a literal last line `<!-- END TURN N -->`, N = the new turn number) + frontmatter
+     with `turn:` incremented and `awaiting:` flipped. Write that content to
+     `<thread>.md.tmp` in the same directory, then `mv <thread>.md.tmp <thread>.md` — POSIX
+     rename is atomic, so a concurrent reader always sees either the fully-old or
+     fully-new file, never a partial one. The marker is a cheap backstop for the rare
+     filesystem/tool where the rename isn't atomic, and lets a reader confirm completeness
+     without guessing (Gotchas). **Never edit the live path directly** — a direct
+     truncate-and-rewrite reopens exactly the race the temp-file + rename avoids.
    - **Read fresh before every write** — base it on a read taken *now*, not a pre-sleep
      snapshot; if the file changed, re-read and rebase.
    - **A turn ending in a user question holds the baton.** Set `awaiting: user` (status
@@ -157,6 +187,13 @@ four-part opener does real convergence work — keep all four in Turn 1.
 - **Staleness:** a thread open ≳1 week means the decision stopped mattering or was made
   out-of-band — confirm with the user, record the actual outcome, archive.
 - **One thread per decision.** A new disagreement on a different seam gets a new thread.
+- **Handing off a seat mid-exchange.** A brief/handoff that puts a (possibly fresh, or
+  replacement-for-a-dead-session) session into an *already-open* confer — a scoped adviser
+  seat, or resuming after the original session died — must carry the thread's
+  `expected-thread-id: <id>` (copied from the thread's own `id:` frontmatter), not just the
+  counterparty's name or the topic. The receiving session locks its listen-scan to that id
+  (§0, §0.5); a name/topic match alone is exactly what let a scoped adviser grab a
+  different project's thread in practice (2026-07-02 — see feedback.md).
 
 ## Recent changes
 <!-- lean anti-loop slice; full dated provenance in feedback.md -->
@@ -168,5 +205,10 @@ four-part opener does real convergence work — keep all four in Turn 1.
 - A baton without a complete turn body is re-read (cache-bypassed), not answered.
 - A cited doc that's missing/contradictory mid-confer may be mid-write — re-read before
   rebutting; the other live session edits its own repo's docs as it argues.
+- **Identity + torn-write hardening.** Turns now commit via temp-file + atomic rename with
+  a trailing `<!-- END TURN N -->` marker (a deterministic completeness check, replacing
+  "wait and hope"); threads carry a stable `id:` minted once at creation — the real
+  identity, not path/`between:` — and pinning, scoped listening, and mid-exchange handoffs
+  (`expected-thread-id:`) all lock onto it.
 
 Full dated log: [feedback.md](feedback.md).

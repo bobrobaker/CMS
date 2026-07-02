@@ -55,3 +55,15 @@ and the correction. Consult when **revising** a rule. The distilled, firing form
   the user reported the other session seemed to be "still waiting for a reply." Fix: the
   side that writes the Resolution archives it in the *same* close-out — punting the archive
   leaves the thread reading as open and the "who archives?" question unowned.
+- **2026-07-02** — A scoped confer adviser (briefed to advise exactly one named
+  counterparty) ran `--listen`, and its scan matched *any* `type: confer` +
+  `awaiting: <it>` hit — it took the baton on a different project's thread instead of the
+  one it was briefed for, because identity was inferred from `between:`/`awaiting:` string
+  matching rather than a stable id. The user had to intervene mid-verification. This also
+  exposed that "torn write" detection was a timing guess (wait ~2s, re-read), not a real
+  check. **Fix:** threads now carry a stable `id:` minted once at creation (the real
+  identity, independent of filename/`between:`); pinning, scoped listening, and
+  mid-exchange handoffs all lock onto a given id instead of a name match. Turns commit via
+  temp-file + atomic rename with a trailing `<!-- END TURN N -->` marker, so completeness
+  is a deterministic check instead of a timed retry. (Interim mitigation before this
+  landed: monition row 185, general reach.)
