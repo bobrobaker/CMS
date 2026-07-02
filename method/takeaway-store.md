@@ -17,8 +17,7 @@ deliberately dumb — executors that run whatever the rows specify — so improv
 `firings` with its context, and firings can be rated (`helpful` / `noise`), so both
 halves of the open question — was the trigger right? was the payload worth its
 cost? — accumulate eval data instead of opinions. That data is the substrate the
-EV-scored firing engine (`monition score`, a later Monition phase) trains and
-evaluates against.
+EV-scored firing engine (`monition score`) trains and evaluates against.
 
 ## Schema semantics
 
@@ -104,8 +103,10 @@ evidence-gated, bulk-confirmed.**
 
 Periodically (audit cadence): rows with many `noise` ratings get a narrower
 `trigger_spec` or retirement; rows that never fire get their spec widened or fold into a
-doc. The EV-scored firing engine (`monition score`, a later phase) automates this read;
-the rating pass is what feeds it.
+doc. `monition report` computes this read per row (fires / helpful / noise / precision)
+and `/housekeep` surfaces the clear candidates on its sweep; the rating pass is what
+feeds both. Acting on a candidate stays a consented row mutation (`monition retire`,
+`monition set-trigger`, `monition calibrate --apply`).
 
 ## Dolt mechanics
 

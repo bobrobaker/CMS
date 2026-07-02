@@ -1,6 +1,6 @@
 ---
 name: housekeep
-description: Sweep the system's transient stores for orphaned or over-horizon residue — unwrapped sessions, dead-session flag files, stale handoffs and confer threads, abandoned worktrees, queued upstream-candidates, global skill-farm drift — then auto-reap only the mechanical-and-safe class and propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
+description: Sweep the system's transient stores for orphaned or over-horizon residue — unwrapped sessions, dead-session flag files, stale handoffs and confer threads, abandoned worktrees, queued upstream-candidates, noise-heavy or never-firing takeaway rows, global skill-farm drift — then auto-reap only the mechanical-and-safe class and propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
 ---
 
 # housekeep
@@ -37,14 +37,18 @@ present them grouped by tier.
 ### A — Unwrapped sessions → propose backfill
 
 `archive/backfill.py --dry-run` already computes exactly the set of recent sessions with
-no archive summary; do not reinvent that selection.
+no archive summary; do not reinvent that selection. The script lives in the system's
+source clone but the session archive is machine-global, so when the current repo isn't
+that clone, resolve it through the skill-farm symlink instead of silently skipping:
 
 ```bash
-[ -f archive/backfill.py ] && python3 archive/backfill.py --dry-run 2>/dev/null
+root=$(git rev-parse --show-toplevel 2>/dev/null)
+[ -f "$root/archive/backfill.py" ] || root=$(readlink -f ~/.claude/skills/housekeep 2>/dev/null | sed 's|/\.claude/skills/housekeep$||')
+[ -f "$root/archive/backfill.py" ] && python3 "$root/archive/backfill.py" --dry-run 2>/dev/null
 ```
 
-If it lists N sessions: **propose** `python3 archive/backfill.py` (optionally `--days`,
-`--limit`). Don't run it unprompted — it makes model calls and costs tokens.
+If it lists N sessions: **propose** `python3 "$root/archive/backfill.py"` (optionally
+`--days`, `--limit`). Don't run it unprompted — it makes model calls and costs tokens.
 
 ### B — Orphaned flag files
 
@@ -148,14 +152,26 @@ determined locally, so surface only that the queue exists and roughly how full i
 "N lines queued in upstream-candidates.md — mirror-back may be due." Resolving it is the
 mirror-back sweep's job, not this skill's.
 
-### G — Monition rows due for audit — DEFERRED
+### G — Monition rows due for audit
 
-Not covered yet. Reaping monition rows (retire noise-heavy rows, widen/fold never-fired
-ones) is the audit cadence in `method/takeaway-store.md`, whose intended engine is
-`monition score` — a later Monition phase, **pending an ongoing refactor**. When that
-ships, add a propose-tier section here that surfaces candidates by count (≥N noise & 0
-helpful; or active & 0 firings past X days). Until then, print one line so it isn't
-forgotten: `· G (monition row audit) deferred — pending monition score`.
+The audit cadence in `method/takeaway-store.md`: noise-heavy rows want a narrower
+trigger or retirement; rows that never fire want a wider spec or folding into a doc.
+`monition report` already computes the per-row read (fires / helpful / noise /
+precision); do not reinvent that selection.
+
+```bash
+monition report 2>/dev/null
+```
+
+From its table, surface as **propose** only the clear cases:
+
+- active rows with ≥3 `noise` and 0 `helpful` ratings → propose a narrower
+  `trigger_spec` or `monition retire`;
+- active rows with 0 firings ever → propose widening the spec or folding into a doc.
+
+Every row action is a consented mutation (`monition retire`, `monition set-trigger`,
+`monition calibrate --apply`) — propose, never apply. Skip the category silently if
+`monition` isn't installed or no store is joined.
 
 ### H — Global skill-farm drift
 
@@ -191,8 +207,8 @@ loses information:
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are
 already done — state what was reaped. Proposes are a numbered list the user can accept
-selectively. Then the one deferred line for G. If nothing fired in any category, the
-single silent-when-clean line instead.
+selectively. If nothing fired in any category, the single silent-when-clean line
+instead.
 
 ## Anti-goals
 
