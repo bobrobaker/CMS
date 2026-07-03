@@ -168,7 +168,16 @@ From its table, surface as **propose** only the clear cases:
 
 - active rows with ≥3 `noise` and 0 `helpful` ratings → propose a narrower
   `trigger_spec` or `monition retire`;
-- active rows with 0 firings ever → propose widening the spec or folding into a doc.
+- active rows with 0 firings ever → two-stage: not yet widened → propose widening
+  the spec or folding into a doc; widened in a prior pass (`monition show <id>`
+  mutation history) and still silent → propose `monition retire`. **Exempt
+  rare-hazard rows** (trigger names a rare-but-costly event — force-push,
+  destructive migration, credential handling): disuse is not staleness when the
+  base rate is low.
+- skip rows carrying a `[pinned]` marker in `full_content` (interim convention
+  until the store grows a first-class pin), and when the user declines a §G
+  proposal, offer to add the marker — re-proposing the same retirement weekly
+  trains rubber-stamping, which erodes the consent gate this section runs on.
 
 Every row action is a consented mutation (`monition retire`, `monition set-trigger`,
 `monition calibrate --apply`) — propose, never apply. Skip the category silently if

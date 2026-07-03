@@ -123,7 +123,13 @@ You are mining this session for takeaways. The store's semantics live in
    make it a trap-warning, not a description, and keep it **≤150 chars**: every char
    is paid on every fire, and `monition show <id>` carries the depth; `monition add`
    hard-rejects past 250), `full_content` (the why + the workaround), `source`
-   (session/commit). Then one more question: **is the failure this row warns about
+   (session/commit). Prefer candidates grounded in an observable artifact (the
+   failing test's name, the exact error line, the reverted diff) over the model's
+   own theory of why it failed — self-diagnosed causes are unreliable (0/121 correct
+   in frozen-env replay, arXiv:2605.29463). When an artifact exists, quote it
+   verbatim into `full_content` so the condition stays script-redetectable — it is
+   also the natural seed for the violation-signature question next. Then one more
+   question: **is the failure this row warns about
    machine-checkable in a transcript?** If yes, author the probe in the same breath —
    `monition add ... --violation-signature '{"kind": "transcript_regex", "pattern": "<regex>"}'`
    — it is what lets the recall sweep (step 0c) catch the row failing to fire. Probe

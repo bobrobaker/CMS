@@ -47,9 +47,11 @@ thoroughly scrutinize the wrong thing.
    expected value to the user, not by your confidence.
 
 3. **Fresh-context adversarial pass** (only if step 1's triage said the target is worth it).
-   Spawn ONE fresh subagent (the Agent tool, general-purpose) whose prompt contains *only*
-   the serialized target plus the red-team question — no inherited framing, no "I think this
-   is good / done." Fresh context buys *less anchoring to this thread*, not true
+   Spawn ONE fresh subagent — if an adversarial-reviewer agent type is available in the
+   session (a role whose contract is refute-first verdicts grounded in shipped state),
+   prefer it over general-purpose; otherwise run general-purpose. Either way the prompt
+   contains *only* the serialized target plus the red-team question — no inherited
+   framing, no "I think this is good / done." Fresh context buys *less anchoring to this thread*, not true
    independence: it's the same model with the same priors, so it catches framing effects,
    not blind spots you share with yourself. Ask it briefly for: the weakest claim, the
    load-bearing unstated assumption, where it breaks (or the strongest counter-case), and the

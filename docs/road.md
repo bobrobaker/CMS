@@ -93,8 +93,26 @@ criteria above.
 
 ---
 
-No Phase 2 is sketched yet. When the next phase is ready to name, see
-`docs/DESIGN.md`'s "Roadmap (forward)" section for candidates already gated there
-(retrieval routing maturation, Tier-3 evaluation discipline, the Monition firing
-engine, warm backlog rating, store-stays-local hygiene follow-ups) before proposing a
-new one.
+## Phase 2 (candidate) — machinery-integration eval (layer-1 canary)
+
+Not yet dispatched; accepted as a candidate 2026-07-03 (source: the 2026-07-03
+machinery audit, `docs/research/2026-07-03-ai-machinery-audit/synthesis.md` Gap 5).
+
+Three headless tasks, weekly cron, programmatic assertions only (no LLM judge):
+(1) bootstrap a scratch fork → `--doctor` clean + hooks wired; (2) a session editing
+governed material receives the craft-reminder injection; (3) a synthetic mine-session
+routes a planted lesson to the expected store/kind/reach. Alert rule: any task
+failing twice consecutively. Scope honesty: this is an integration canary — it
+catches wiring/config regressions, not vendor-model regressions; judgment-sensitive
+tasks with tolerance bands are a later increment, not this phase.
+
+**Exit:** the three tasks run headlessly on a schedule with a committed baseline, and
+one deliberately-broken wiring (unwired hook) is caught by the canary before a human
+notices it.
+
+---
+
+Other Phase-2+ candidates remain gated in `docs/DESIGN.md`'s "Roadmap (forward)"
+section (retrieval routing maturation, Tier-3 evaluation discipline, the Monition
+firing engine, warm backlog rating, store-stays-local hygiene follow-ups) — consult it
+before naming the next phase.
