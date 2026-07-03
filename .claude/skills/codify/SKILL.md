@@ -1,6 +1,6 @@
 ---
 name: codify
-description: Turn a one-off correction or agreed convention into durable governance, routed to the right layer — your personal config, this project, or the shared system — and gated by how far the change reaches. Use when the user invokes /codify, says "make this a rule" / "remember this as a convention", or when a reusable rule or anti-pattern surfaces mid-conversation. Always proposes the change and gets explicit acceptance before writing.
+description: Turn a one-off correction or agreed convention into durable governance, routed to the right layer — personal config, this project, or the shared system. Use when the user invokes /codify, says "make this a rule" / "remember this as a convention", or when a reusable rule or anti-pattern surfaces mid-conversation. Proposes and gets acceptance before writing.
 ---
 
 # codify

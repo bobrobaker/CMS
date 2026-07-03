@@ -64,7 +64,7 @@ is single-sourced; delete what your fork doesn't need.
 | `method/` | The knowledge base: one doc per discipline, each stating its trigger. Loaded on demand, never all at once. |
 | `tools/` | The runnable machinery: the linter (`cms_lint.py`), the craft-reminder and token hooks, the session extractor. |
 | `starter/` | Per-project identity templates (`CLAUDE.md`, `road.md`, `debt.md`, the bucket-generator prompt) that apply-to-target lays into a repo. |
-| `monition/` | This repo's own takeaway store (Monition, a declared dependency). |
+| Monition store | Rows + firings live in the cross-repo hub at `$CMS_LANDING_ZONE/monition` (joined via `monition instrument`); this repo keeps no per-repo store dir. A standalone forker with no hub gets its own SQLite store. |
 | `landing/` | The zero-config landing-zone fallback for cross-project context (see below). |
 | `docs/DESIGN.md` | Architecture: the four seams, the upstream contract, the roadmap. |
 | `bootstrap.sh` | The installer — fork-in-place (`--link-global` optional) or apply-to-target. |

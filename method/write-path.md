@@ -24,9 +24,14 @@ destination — `lesson-routing.md` decides *where*, the gate decides *whether*.
 A discipline that doesn't fire at write time is invisible — agents don't re-read the
 rules before every edit. The craft-reminder hook (PreToolUse on `Write|Edit`) injects
 a once-per-session pointer to the craft rules whenever a session edits governed
-material. Three properties are load-bearing: it fires once per session (a repeated
-reminder becomes noise), never blocks, and fails open. Set `GOVERNED_PATHS` to the
-project's durable corpus, not its code.
+material. Three properties are load-bearing: it fires once per session per pointer (a
+repeated reminder becomes noise), never blocks, and fails open. The managed body ships a
+doc-agnostic default `RULES` table (path fragment → pointer, most-specific-first) so a
+bare fork's reminders fire out of the box — a more-specific surface like `docs/decisions/`
+earns its own pointer. A fork overrides or adds rows in the fork-local
+`craft_reminder_local.py` (merged by `key`; local wins). That file is deliberately not
+a managed tool, so `--update` re-vendoring never touches it — per-project pointer text
+survives an upgrade with no special-casing in the installer.
 
 This is the write-side mirror of the read path's companion-note trigger: creating the
 rule is half the job; wiring the thing that surfaces it at the edit is the other half.
@@ -46,7 +51,11 @@ because the structure looked tidy. Two rules keep the corpus lean:
 
 Design calls land as date-slug files in `docs/decisions/`: the call plus its why, one
 file each. Cross-cutting calls that outlive the project graduate to the cross-project landing
-zone (`landing/decisions/`).
+zone (`landing/decisions/`). Authoring one is a **backward-looking** act, not just a
+forward record: audit the existing shelf (and the roadmap) for what the new call
+supersedes or contradicts, mark the superseded doc `status: superseded`, and cite the
+contract section it affirms — otherwise the retired decision keeps reading as live. The
+craft-reminder's `docs/decisions/` pointer fires this audit at write time.
 
 ## Evidence vs. provenance
 
@@ -67,6 +76,8 @@ evidence lives wherever it stays re-consultable and is referenced, not copied.
 - Both profiles: the consent-gate line and `/codify` ship in `CLAUDE.md` from day one;
   the `docs/decisions/` shelf is a day-one convention.
 - Craft-reminder hook: wire once the corpus holds governed material worth protecting;
-  set `GOVERNED_PATHS` to that corpus.
+  CMS ships default rules in the managed body, and a fork adds per-project rows in the
+  fork-local `craft_reminder_local.py` (one rule per governed surface that earns a
+  distinct pointer), preserved across `--update`.
 - Evidence-vs-provenance is a convention, not yet a lint check — a WARN candidate once
   a project has a citable source store and the split is mechanically detectable.

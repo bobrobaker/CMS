@@ -35,8 +35,8 @@
   inherits the reasoning instead of relitigating it. Cross-cutting calls that outlive
   the project go to your portfolio-level decision store. These files are **provenance**:
   each carries frontmatter `status: decided|superseded` (linted) so retirement is visible
-  at the file. `road.md §2` is the live-verdict registry — consult it for *which* call
-  currently stands.
+  at the file. `docs/road.md §2` is the live-verdict registry — consult it for *which*
+  call currently stands.
 - Wrapping up mid-task: `/handoff` writes a decision-ready handoff to `handoffs/`.
 
 ## Intake guard

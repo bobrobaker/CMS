@@ -13,7 +13,8 @@ fork or clone the repo and run `bootstrap.sh`; the machinery is live in *that* r
 the shared parts are **single-sourced** (`.claude/skills/`, `tools/`) rather than copied
 per project. One canonical copy, instantly live for the author (via opt-in symlinks),
 shipped unchanged to forkers — which is the opposite of the drift a copy-into-N-projects
-generator accrues.
+generator accrues. The call and its why:
+`docs/decisions/2026-06-17-cms-forkable-refactor.md`.
 
 The anti-goal is the reading list: a corpus of method docs that a project would have to
 *read* to benefit from. A note nobody loads is dead weight, and agents don't browse — so
@@ -44,7 +45,10 @@ workload, owns its own feedback logs. At mirror-back time, drift classifies by o
 strip the project's domain from the lesson. What survives is a **system learning** and
 comes back upstream through the consent gate; what doesn't stays downstream as local
 adaptation. Upstream docs grow gotchas and feedback layers only this way — fed by
-downstream runs, on saturation, never speculatively.
+downstream runs, on saturation, never speculatively. First landing of the mechanism:
+`docs/decisions/2026-06-13-mirror-back-dispatch-and-decisions-shelf.md`; CMS's own
+lessons skip the queue and route at mine-time:
+`docs/decisions/2026-06-14-cms-self-lessons-route-at-mine-time.md`.
 
 **Exception — takeaway machinery.** The store schema, executors, and lifecycle CLI are
 owned by the **Monition module** and evolve by version bump there, not by copy-and-drift.
@@ -70,9 +74,14 @@ assembled from tiers.
 - **The learning loop.** `mine → house → fire`, closed: `/mine-session` (+ `/flag`,
   `/postmortem`, `/concern-review`) mine; `/codify` routes the lesson to its home (a
   Monition row, a `method/` doc, a `CLAUDE.md` rule, a file-local gotcha); matched rows
-  inject as context and the linter/hooks fire mechanically.
+  inject as context and the linter/hooks fire mechanically. Mining capture is two-tier
+  (agent self-flags; a Stop-hook backstop nets what it skips):
+  `docs/decisions/2026-06-18-two-tier-autoflagger.md`, with the backstop's
+  self-improving lexical layer in
+  `docs/decisions/2026-06-20-self-improving-lexical-flag-backstop.md`.
 - **The takeaway store** — rows + firings live in a single cross-repo **hub**
-  (Dolt-backed for us) at `$CMS_LANDING_ZONE/monition`; host repos join it via `monition
+  (Dolt-backed for us) at `$CMS_LANDING_ZONE/monition` (the hub-location call:
+  `docs/decisions/2026-06-19-monition-hub-at-landing-zone.md`); host repos join it via `monition
   instrument` and keep **no per-repo store** (the former per-repo monition/ dirs were
   retired in the v6 cutover — see `docs/decisions/2026-06-19-retire-per-repo-stores-and-reference-exhibit.md`).
   A standalone forker with no hub configured still gets its own SQLite monition/ store.
@@ -96,7 +105,7 @@ assembled from tiers.
 - **The landing zone** — `$CMS_LANDING_ZONE` else the in-repo `landing/` fallback, so a
   fresh fork has a zero-config home for cross-project decisions and handoffs.
 - **Deploy** — one `/deploy` skill is the entry point after a fork: it drives `bootstrap.sh`
-  (the deterministic installer — monition + the `[mcp]` extra, hook arming, store create/join,
+  (the deterministic installer — monition + the `[mcp]` and `[wire]` extras, hook arming, store create/join,
   hook merge, MCP approval, PATH, `--doctor` health check; JSON surgery in
   `tools/deploy_settings.py`) and supplies the judgement bash can't (fork-vs-existing detection,
   doctor triage, interactive steps). Method in `method/deploy.md`. The harness hooks wire
@@ -163,12 +172,21 @@ evidence, never built speculatively.
   over the store's `firings` data, replacing hand-tuned `trigger_spec`s and the manual
   rate-and-tighten loop with learned firing decisions. Collection is live; the engine is
   gated on accumulated honest ratings.
+- **Warm backlog rating (excerpt-class labels)** — extend the mine-session rating pass
+  to also sweep *past* sessions' unrated firings from the current warm session, judged
+  from stored evidence (`trigger_context` + `match_evidence`, optionally the session's
+  archive summary). Scope: noise-by-irrelevance only — a repo-steeped judge can evidence
+  relevance from excerpts; helpfulness/causality it cannot, and abstains. Same
+  bulk-confirm gate. Precondition: a Monition-side evidence-class tag on ratings (lived
+  vs. excerpt) so the fire/suppress gate can weight label classes — unmarked mixing
+  would dilute the eval substrate the warm-rating discipline protects. Gated on that
+  provenance column landing; then a routing bump adds the sweep to the rating pass.
 - **Store-stays-local hygiene** — the store (hub for us; per-repo for a standalone forker)
-  stays local and is never published. Two follow-ups remain on the standalone/forker path:
-  `bootstrap.sh` apply-to-target still hardcodes a pre-commit step that git-tracks the store
-  dump, and `monition init` still advertises the same; align both with the store-stays-local
-  default so a freshly bootstrapped repo ignores its store, with dump-tracking left as an
-  explicit opt-in. (Our hub deliberately keeps a tracked `dump.sql` in the private
+  stays local and is never published. `bootstrap.sh` apply-to-target now gitignores a
+  freshly created per-repo store and ships its pre-commit dump-tracking step commented out
+  (explicit opt-in: uncomment + un-ignore its `dump.sql`). One follow-up remains:
+  `monition init` (in the monition repo) still advertises the old unconditional-dump
+  behavior in its own scaffolding — out of scope here, align it separately. (Our hub deliberately keeps a tracked `dump.sql` in the private
   landing-zone repo for offsite backup — that's the opt-in, not the default.) Open sub-question: where a *public*-repo project's store gets backed up — since
   it's gitignored, git no longer backs it up, so a private destination is decided per
   project. (Verified safe meanwhile: the published module bundles no store data, so

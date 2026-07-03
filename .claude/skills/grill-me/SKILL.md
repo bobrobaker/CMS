@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Relentlessly interrogate the user about the task at hand, in rounds, until both models of the deliverable visibly align. Use when the user invokes /grill-me [topic] [--impl], says "grill me", "I suspect we're not aligned", or before committing to a spec or large build after signs of misalignment. When a build request describes source material to transform but names no moment of use, ask the day-one user story and (one light question) the anti-goal inline, and offer /grill-me rather than auto-running it. --impl extends grilling into implementation mechanics; without it, stop at goals/scope/architecture. NOT for reviewing an existing artifact.
+description: Interrogate the user in rounds until both models of the deliverable visibly align. Use when the user invokes /grill-me [topic] [--impl], says "grill me", "I suspect we're not aligned", or before committing to a spec or large build after signs of misalignment. If a build request names source material but no moment of use, ask the day-one user story and anti-goal inline and offer /grill-me rather than auto-running it. --impl extends into implementation mechanics; without it stop at goals/scope/architecture. NOT for reviewing an existing artifact.
 ---
 
 # grill-me

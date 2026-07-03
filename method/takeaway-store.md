@@ -1,11 +1,12 @@
 # Takeaway store — lessons as rows, triggers as data, firings as eval data
 
 **Trigger:** read when mining takeaways (`/mine-session`), designing a takeaway's
-trigger, wiring the store into a fork, or building anything on the
-firings data. The operative artifacts: `monition/` (the Monition store — SQLite by
-default, Dolt optional) and the installed Monition module (`monition` CLI + its `fire-hook` /
-`session-brief` disclosure executors; machinery owned in `~/projects/monition`),
-wired through `.claude/settings.json` with guarded fail-open commands.
+trigger, wiring the store into a fork, or building anything on the firings data. The
+operative artifacts: the Monition store — a single cross-repo **hub** at the landing
+zone (`$CMS_LANDING_ZONE/monition`, joined via `monition instrument`; a standalone
+fork with no hub gets its own local SQLite store instead) — and the installed
+Monition module (the `monition` CLI + its `fire-hook` / `session-brief` disclosure
+executors), wired through `.claude/settings.json` with guarded fail-open commands.
 
 ## The design in one paragraph
 
@@ -27,7 +28,10 @@ session_start; for on_demand, `trigger_spec` keywords are a human-facing hint �
 is semantic, not keyword**, see below) · `one_liner` (what gets injected — write it as a
 trap-warning, **and** it is the embedding match text, see below) · `full_content` (the why
 + workaround; loaded only on demand — progressive disclosure) · `source` (origin
-session/commit) · two orthogonal
+session/commit) · `violation_signature` (optional JSON probe,
+`{"kind": "transcript_regex", "pattern": …}` — matched against extracted transcript
+text by the recall sweep to catch the row's failure happening *without* the row
+firing; see §Rating. Most rows won't have one, by design) · two orthogonal
 axes (one column per meaning — a status that encodes two things turns
 bookkeeping transitions into accidental kill switches):
 
@@ -68,10 +72,14 @@ that contains it.
 - **edit_path** — `trigger_spec` is comma-separated Python `fnmatch` patterns (not
   shell globs): `*` crosses `/` (so `method/*` already matches nested paths and `**`
   adds nothing), case-sensitive on Linux.
-- **on_demand** — matching is **semantic**: the row's `one_liner + full_content` is
-  embedded (fastembed) and matched by cosine similarity against the prompt. The
-  `trigger_spec` keywords are a human-readable hint, **not** the match mechanism. So the
-  craft is in the **`one_liner`**, which does double duty — the injected trap-warning
+- **on_demand** — matching is **two-layer**. First **lexical**: each comma-separated
+  `trigger_spec` keyword is substring-matched against the prompt, and a keyword hit
+  fires directly — keywords are a real, deterministic match mechanism (and lexical
+  hits are never dropped by the per-prompt cap), so choose them as words a triggering
+  prompt would actually contain. Rows the lexical layer misses go to the **semantic**
+  layer: `one_liner + trigger_spec` is embedded (fastembed) and cosine-matched
+  against the prompt, thresholded and capped to the top few per prompt. So the craft
+  is in **both fields**. The `one_liner` does double duty — the injected trap-warning
   *and* the match vector. Write it **embedding-dense**: front-load the *situation's*
   vocabulary (the nouns/verbs a triggering prompt would use), not just a tidy summary. A
   one-liner that reads well but omits the situation's words won't embed near the prompts
@@ -88,7 +96,10 @@ evidence-gated, bulk-confirmed.**
 
 - **Evidence-gated, not coverage-gated.** Rate a firing only where *this session*
   evidences the injection mattered — it changed an action, was visibly ignored, or was
-  contradicted — and cite that evidence in one line. **No evidence → no rating.** Padding
+  contradicted — and cite that evidence in one line. Irrelevance is itself evidence:
+  a fire on a context it doesn't apply to is `noise` regardless of trigger breadth,
+  because the dilution is the cost (batch dumps may be noise-rated in bulk with one
+  shared citation). **No evidence → no rating.** Padding
   to hit coverage puts directional bias in the eval set, which is worse than a label
   missing at random — sparse honest labels beat dense dutiful ones. A cold mine (an
   architect mining workers it didn't live through) evidences little and rates ~nothing.
@@ -100,6 +111,19 @@ evidence-gated, bulk-confirmed.**
 - **Bulk-confirm, lighter gate than rows.** Proposed ratings are presented as one batch
   for a single user accept with per-line veto — a rating is reversible eval data, not
   durable governance, so it earns a cheaper gate than a row (`write-path.md`).
+
+Ratings are **precision-only** signal: they grade what fired, and nothing fires on a
+missed trigger. The recall side is the **violation sweep** — a row may carry a
+`violation_signature` (a transcript regex probing the *failure event itself*, never the
+topic: one-liners discuss failures, so a topic-shaped pattern self-matches), and
+`monition eval-session --transcript <path>` classifies each signature-bearing row
+against the session: fired∧avoided, fired∧hit, or **not-fired∧hit**. Only the third
+persists (a `violations` row, idempotent per row×session) — it is the
+trigger-broadening evidence ratings structurally cannot produce, since nothing fired to
+rate. The sweep runs inside the mining pass (step 0c), fail-open; widening a
+`trigger_spec` off a violation stays a consented row edit. Author signatures
+under-matching: a missed event costs nothing (the row stays precision-only), a false
+one pollutes the signal.
 
 Periodically (audit cadence): rows with many `noise` ratings get a narrower
 `trigger_spec` or retirement; rows that never fire get their spec widened or fold into a

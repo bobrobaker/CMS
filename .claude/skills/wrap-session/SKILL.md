@@ -1,6 +1,6 @@
 ---
 name: wrap-session
-description: Wrap a session into the global session archive — a rich, embedding-friendly summary file plus a one-line index entry — so a half-remembered future query ("I remember working on X") can be found by progressive disclosure. Live mode (no argument): summarizes from the current context window. Backfill mode (/wrap-session <session-id>): reads the transcript to wrap a missed past session. Use when the user invokes /wrap-session [session-id], says "wrap this session" / "archive this session" / "backfill session <id>", or is ending a session worth being able to find again. NOT for a decision-ready resume of in-flight work (that's /handoff).
+description: Wrap a session into the global session archive so a half-remembered future query ("I remember working on X") can be found. Live mode summarizes the current context; backfill mode (<session-id>) reads a past transcript. Use when the user invokes /wrap-session [session-id], says "wrap this session" / "archive this session" / "backfill session <id>", or is ending a session worth being able to find again. NOT for a decision-ready resume of in-flight work (that's /handoff).
 ---
 
 # wrap-session

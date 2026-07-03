@@ -1,6 +1,6 @@
 ---
 name: confer
-description: Run a bounded, turn-based negotiation between two sessions (different repos/goals) over a shared thread file — converge on a cross-cutting decision, escalate to the user decision-ready if stuck, archive the thread as provenance. Use when the user invokes /confer <other-repo> [topic] [--listen] [--wait <minutes>], asks this session to "align / talk it out with the other session", or when a confer thread is awaiting this repo. NOT for one-way context transfer to a future session (that's /handoff).
+description: Turn-based negotiation between two sessions (different repos/goals) over a shared thread file to converge on a cross-cutting decision. Use when the user invokes /confer <other-repo> [topic] [--listen] [--wait <minutes>], asks this session to "align / talk it out with the other session", or when a confer thread is awaiting this repo. NOT for one-way context transfer to a future session (that's /handoff).
 ---
 
 # confer

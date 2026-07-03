@@ -2,7 +2,7 @@
 """Deploy-time settings merges for the CMS deploy path — the JSON surgery bootstrap.sh
 (and the /deploy skill) can't do safely in bash.
 
-Two idempotent operations:
+Three idempotent operations:
 
   approve-mcp <repo-root> [server ...]
       Merge MCP enablement into <root>/.claude/settings.local.json (gitignored, machine-local):
@@ -19,7 +19,12 @@ Two idempotent operations:
       repo is self-sufficient. With the anchor present, only craft_reminder is added.
       Default (no flag): the anchor is auto-detected at ~/.claude/cms.
 
-Both are merge-not-clobber: load existing config, add by exact identity, write back. They FAIL
+  set-env <repo-root> KEY=VALUE [KEY=VALUE ...]
+      Merge entries into the `env` object of <root>/.claude/settings.local.json (gitignored,
+      machine-local). Used by bootstrap to record env.CMS_SRC — the absolute path of the CMS
+      clone that deployed this repo — so recovery runs and --update can find bootstrap.sh.
+
+All are merge-not-clobber: load existing config, add by exact identity, write back. They FAIL
 LOUD on malformed JSON — this is a deploy step a human is watching, not a fail-open hot path.
 The monition hooks (fire/prompt/session) are NOT our concern here: `monition instrument` owns
 those. We only wire the three CMS-owned harness hooks.
@@ -127,6 +132,23 @@ def wire_harness_hooks(root: Path, global_archive: bool) -> None:
     print(msg)
 
 
+def set_env(root: Path, pairs) -> None:
+    path = root / ".claude" / "settings.local.json"
+    data = _load(path)
+    env = data.setdefault("env", {})
+    changed = []
+    for pair in pairs:
+        if "=" not in pair:
+            sys.exit(f"deploy_settings: set-env expects KEY=VALUE, got {pair!r}")
+        key, value = pair.split("=", 1)
+        if env.get(key) != value:
+            env[key] = value
+            changed.append(key)
+    _write(path, data)
+    print(f"set-env: {path} — "
+          + (f"set {changed}" if changed else "already set (no change)"))
+
+
 def _global_archive_present(flag: str | None) -> bool:
     if flag == "present":
         return True
@@ -158,8 +180,13 @@ def main(argv) -> None:
             sys.exit("usage: deploy_settings.py wire-harness-hooks <repo-root> "
                      "[--global-archive present|absent]")
         wire_harness_hooks(Path(args[0]).resolve(), _global_archive_present(flag))
+    elif cmd == "set-env":
+        if len(rest) < 2:
+            sys.exit("usage: deploy_settings.py set-env <repo-root> KEY=VALUE [KEY=VALUE ...]")
+        set_env(Path(rest[0]).resolve(), rest[1:])
     else:
-        sys.exit(f"deploy_settings.py: unknown command {cmd!r} (approve-mcp | wire-harness-hooks)")
+        sys.exit(f"deploy_settings.py: unknown command {cmd!r} "
+                 "(approve-mcp | wire-harness-hooks | set-env)")
 
 
 if __name__ == "__main__":

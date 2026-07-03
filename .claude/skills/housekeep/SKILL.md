@@ -1,6 +1,6 @@
 ---
 name: housekeep
-description: Sweep the system's transient stores for orphaned or over-horizon residue — unwrapped sessions, dead-session flag files, stale handoffs and confer threads, abandoned worktrees, queued upstream-candidates, noise-heavy or never-firing takeaway rows, global skill-farm drift — then auto-reap only the mechanical-and-safe class and propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
+description: Sweep the system's transient stores for orphaned or stale residue (sessions, flag files, handoffs, confer threads, worktrees, upstream-candidates, takeaway rows, skill-farm drift) — auto-reap the mechanical-and-safe class, propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
 ---
 
 # housekeep
@@ -99,9 +99,10 @@ so use conservative buckets and let the user resolve:
 - `created:` > ~3 days → **propose** review ("carry-forward may have missed its pick-up").
 - `created:` > ~14 days → **propose** as stale regardless of kind.
 
-Offer the three resolutions for each, don't pick one: work died → delete; quietly became
-a runbook → promote to a durable doc; live-but-stalled → do the pick-up or consciously
-deprioritize-then-delete.
+Offer the resolutions from `handoff/SKILL.md` §Lifecycle for each, don't pick one —
+delete (work died) / promote to durable doc (became a runbook) / route the work into the
+target repo's `road.md`/`debt.md` then delete the envelope (real but unstarted — a
+handoff is a transfer envelope, not a backlog) / do the pick-up (genuinely imminent).
 
 ### D — Stale confer threads
 
@@ -203,12 +204,73 @@ loses information:
 - `DANGLING` → propose: repoint the link to the source's new location, or remove it if
   the skill was retired. Never assume "delete" — a moved source wants a repoint.
 
+### I — Unbounded hook sinks
+
+Anything a hook appends per-event grows forever unless the writer bounds it — a
+write-only log with no reader is invisible until it's huge. The writer owning its own
+rotation/reap is the real fix; this probe is the net that catches sinks wired without
+one. Flag, don't delete (the file may be someone's audit trail):
+
+```bash
+find ~/.claude -maxdepth 3 \( -name "*.jsonl" -o -name "*.log" \) -size +10M 2>/dev/null
+find ~/.local/state -maxdepth 3 \( -name "*.jsonl" -o -name "*.log" \) -size +10M 2>/dev/null
+```
+
+Any hit → **propose**: add rotation/TTL in the writer (preferred), or truncate after
+confirming nothing reads it.
+
+### J — Aged session transcripts
+
+`~/.claude/projects/` accrues one JSONL per session (subagents included) with no
+harness-side retention — the dominant unbounded disk item. A transcript whose session
+is already wrapped is prunable after a horizon; the raw JSONL is the archive ladder's
+deep-retrieval rung, so propose, never auto-delete.
+
+Age by the transcript's **first recorded timestamp**, never file mtime — background
+indexing touches these files, so every mtime reads recent regardless of true age:
+
+```bash
+python3 - <<'EOF' 2>/dev/null
+import json, os, glob, datetime
+cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=60)
+old, total = [], 0
+for p in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
+    total += 1
+    try:
+        with open(p) as f:
+            for _ in range(10):  # first records (mode/permission) carry no timestamp
+                d = json.loads(f.readline())
+                ts = d.get("timestamp")
+                if ts:
+                    if datetime.datetime.fromisoformat(ts.replace("Z", "+00:00")) < cutoff:
+                        old.append(p)
+                    break
+    except Exception:
+        pass
+print(f"{len(old)} of {total} transcripts >60d by first-record timestamp")
+EOF
+du -sh -- ~/.claude/projects 2>/dev/null | cut -f1
+```
+
+A large count → **propose** pruning those transcripts, excluding any session probe
+A's `--dry-run` still lists as unwrapped (wrap first, then prune). State in the
+proposal that a pruned session keeps its archive summary + index entry but loses the
+raw-text retrieval rung.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are
 already done — state what was reaped. Proposes are a numbered list the user can accept
 selectively. If nothing fired in any category, the single silent-when-clean line
 instead.
+
+Whatever the outcome — findings or clean — stamp the run so `/eos` can surface
+staleness (its hygiene glance reads this file's mtime):
+
+```bash
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"
+{ mkdir -p "$d" && date -Is > "$d/housekeep.last"; } 2>/dev/null || true
+```
 
 ## Anti-goals
 

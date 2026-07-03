@@ -33,7 +33,7 @@ use that machinery or improve it.
   surface* only: the Monition store is **not** part of it. The store is
   private-but-versioned working memory mined from real sessions, so rows may carry
   machine-local paths and personal detail (the linter's provenance check scans only
-  `method`/`payload`). Keep a row's transferable lesson legible on its own so it still
+  `method`/`starter`/`.claude/skills`). Keep a row's transferable lesson legible on its own so it still
   benefits when the store is carried to another machine or fork where a local path
   won't resolve — but don't sanitize rows the way teaching docs are sanitized.
 - **Read budget:** grep before reading; `grep -n "^##"` before any markdown range read;
@@ -53,7 +53,10 @@ use that machinery or improve it.
 - **Mirror-back sweep.** At the start of a session here (or on request), scan downstream
   forks/projects for queued upstream candidates (each appends to its own
   `handoffs/upstream-candidates.md`) and propose them through the consent gate; a landed
-  candidate is removed from its downstream queue in the same pass. (Where "downstream"
+  candidate is removed from its downstream queue in the same pass. The queue is for
+  **teaching-surface proposals only** — changes to `method/`, skills, `starter/`, or the
+  linter. A trigger-shaped lesson never queues: it goes straight into the shared Monition
+  hub at mine time (`reach: general`) and is already live everywhere. (Where "downstream"
   lives is environment-specific — e.g. sibling repos under your projects directory.)
 - **Rate what fires.** When an injected takeaway helped or was noise, say so:
   `monition rate <firing-id> helpful|noise`. Sparse honest labels beat dense dutiful ones

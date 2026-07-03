@@ -22,11 +22,12 @@ def _strip_code(text: str) -> str:
     `lint_skeleton.strip_code` (the vendored copy) — edit both together."""
     text = _CODE_BLOCK_RE.sub("", text)
     return _CODE_SPAN_RE.sub("", text)
-# Shadow of the de-provenancing rule (CLAUDE.md): source-project names must not
-# appear in method/ or payload/ doc bodies. Greppable strings only — whether a hit
-# is legitimate stays a judgment call, so this is WARN, never ERROR.
-PROVENANCE_RE = re.compile(r"\bvvsim\b|\bbrain2\b|\bMTG\b", re.I)
-PROVENANCE_DIRS = ("method", "payload")
+# Shadow of the de-provenancing rule (CLAUDE.md): source-project names and
+# machine-local paths must not appear in method/, starter/, or skill doc bodies.
+# Greppable strings only — whether a hit is legitimate stays a judgment call, so
+# this is WARN, never ERROR.
+PROVENANCE_RE = re.compile(r"\bvvsim\b|\bbrain2\b|\bMTG\b|\bbolun\b|~/projects/|/home/", re.I)
+PROVENANCE_DIRS = ("method", "starter", os.path.join(".claude", "skills"))
 
 errors = []
 warnings = []
@@ -54,8 +55,6 @@ def md_files():
 
 def check_relative_links(path, text):
     """Shadows: 'every pointer targets an existing file'. Mechanical → ERROR."""
-    if "payload" in os.path.relpath(path, ROOT).split(os.sep):
-        return  # payload links resolve in the *generated* project, not here
     for m in LINK_RE.finditer(_strip_code(text)):
         target = m.group(1).split("#")[0]
         if not target or "://" in target or target.startswith("mailto:"):
@@ -67,7 +66,7 @@ def check_relative_links(path, text):
 
 def check_provenance(path, text):
     """Shadows: 'write for an external reader — no source-project provenance in
-    method/ or payload/ doc bodies'. Loose backstop → always WARN."""
+    method/, starter/, or skill doc bodies'. Loose backstop → always WARN."""
     rel = os.path.relpath(path, ROOT)
     if not rel.startswith(PROVENANCE_DIRS):
         return
@@ -79,15 +78,15 @@ def check_provenance(path, text):
 
 def check_unfilled_placeholders(path, text):
     """Shadows: 'placeholders are instantiation slots' — they belong ONLY in
-    payload templates; anywhere else one is an unfinished edit. Mechanical → ERROR.
+    starter templates; anywhere else one is an unfinished edit. Mechanical → ERROR.
     Mentions in code spans/blocks don't count — only bare occurrences."""
     rel = os.path.relpath(path, ROOT)
-    if rel.startswith("payload") or rel.startswith("starter"):
+    if rel.startswith("starter"):
         return
     prose = re.sub(r"```.*?```", "", text, flags=re.S)
     prose = re.sub(r"`[^`]*`", "", prose)
     if "{{" in prose:
-        error(path, "unfilled {{placeholder}} outside payload/")
+        error(path, "unfilled {{placeholder}} outside starter/")
 
 
 DECISION_STATUSES = {"decided", "superseded"}

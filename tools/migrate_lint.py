@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Assisted migration of a fork's frozen-copy tools/lint.py to the wrapper form (WS2 / B07).
 
+ONE-SHOT MIGRATION TOOL — scoped to the WS2/B07 fork migration (frozen-copy lint.py →
+thin wrapper). It is not part of the standing machinery: once the fleet migration
+completes (every reachable fork classified and either migrated or manually extracted),
+this tool is retirement-eligible.
+
 A fork bootstrapped before the managed/local seam has a *frozen copy* lint.py (a full copy of an
 old lint_skeleton, no `import lint_skeleton`), so re-vendoring the skeleton never reaches its
 checks. This classifies a fork's lint.py and, for a *clean* frozen copy (only CMS-shared checks,

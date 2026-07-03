@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Save a decision-ready handoff of the current session's context — goal, state, next actions, key decisions with the why, the one open judgment — so a future cold-start session (here or in another project) resumes in seconds. Use when the user invokes /handoff [--goal <goal>], says "write a handoff", "save context for next time / the next session", or is wrapping up mid-task and wants the thread resumable.
+description: Save a decision-ready handoff of the current session's context so a future cold-start session (here or in another project) resumes in seconds. Use when the user invokes /handoff [--goal <goal>], says "write a handoff", "save context for next time / the next session", or is wrapping up mid-task and wants the thread resumable.
 ---
 
 # handoff
@@ -67,12 +67,15 @@ every section earns its place, empty ones are dropped:
   - A **carry-forward** handoff (front-loading context for a session that hasn't started) is
     stale in **days** — untouched past that means the pick-up didn't happen on schedule.
   - A **bridge** handoff (between sessions on actively-moving work) is more patient (~2 weeks).
-  - Three resolutions: the work died → delete; it quietly became a runbook → promote it to a
-    durable doc in the project; it's live-but-stalled → do the pick-up (or consciously
-    deprioritize, then delete).
+  - Resolutions — **a handoff is a transfer envelope, not a backlog**: the work died →
+    delete; it quietly became a runbook → promote it to a durable doc in the project; the
+    work is real but never started (or stalled past its horizon) → route the work into the
+    target repo's `road.md`/`debt.md` (or equivalent) *with its context*, then delete the
+    envelope; do the pick-up instead only when it is genuinely about to happen.
 
 ## Recent changes
 
-- Feedback log is empty — no misfires recorded yet.
+- 2026-07-02 — envelope-not-backlog: un-started work routes to the target repo's
+  road/debt, then the envelope is deleted (audit found the delete lifecycle unenforced).
 
 Full dated log: [feedback.md](feedback.md).

@@ -71,11 +71,12 @@ sides can't silently diverge.
 
 A PreToolUse hook fires when a write targets governed material and injects one line:
 *you are editing governed material; consult these craft docs first.* Properties that
-make it work: trigger → payload (path match → pointer; the harness guarantees firing,
-the agent supplies the judgment); **once per session** via a marker file (a reminder
-that repeats becomes noise); **never blocks, fails open** (malformed input exits
-silently — enforcement strength matches confidence, and a reminder has no business
-stopping work).
+make it work: trigger → payload (a rules table of path fragment → pointer, most
+specific match wins; the harness guarantees firing, the agent supplies the judgment);
+**once per session per pointer** via marker files (a reminder that repeats becomes
+noise); **never blocks, fails open** (malformed input exits silently — enforcement
+strength matches confidence, and a reminder has no business stopping work). Rule
+sourcing and the fork-local overlay are specified in `write-path.md`.
 
 ### Tier 3 — audit on cadence (judging)
 
@@ -94,7 +95,7 @@ split, applied to the auditor's own write permissions.
   (`~/.claude/logs/sessions.md`). With `--print`, reports provisional counts without
   writing — consumed by `/wrap-session` before the hook fires its final write.
 - Full profile adds tier 2 (`tools/craft_reminder.py` wired in
-  `.claude/settings.json`, governed paths set to the project's docs dir).
+  `.claude/settings.json`; project-specific rules go in `tools/craft_reminder_local.py`).
 - Tier 3's orphan/staleness slice is shipped as the `/housekeep` skill (transient-store
   residue: unwrapped sessions, dead-session flags, stale handoffs/confer threads,
   abandoned worktrees, takeaway rows due for audit — noise-heavy or never-firing, read

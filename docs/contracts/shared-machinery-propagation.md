@@ -24,6 +24,10 @@ and `run(extra_checks=())`. The fork's `tools/lint.py` is a thin wrapper that
 the wrapper (and its `FORK_CHECKS`) is never touched. A **legacy** `lint.py` (a pre-seam frozen
 copy, detected by the absence of `import lint_skeleton`) is **flagged for manual migration, not
 overwritten** — automatic extraction of fork-local checks from a frozen copy is unsafe.
+`tools/craft_reminder_local.py` is fork-local on the same seam: the optional `RULES` overlay
+for the managed `craft_reminder.py`, never vendored, never overwritten (see
+`docs/decisions/2026-07-02-craft-reminder-multi-rule-overlay.md`); a pre-seam
+`craft_reminder.py` (no `import craft_reminder_local`) gets the analogous migration WARN.
 
 ## Version stamp
 

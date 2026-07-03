@@ -1,6 +1,6 @@
 ---
 name: scrutinize
-description: Deep pass on one artifact — read it thoroughly and verify its load-bearing claims structurally, surface the few high-value angles a default answer would prune, then red-team it from a fresh-context subagent. Use when the user invokes /scrutinize [target], or says "go over this thoroughly", "go deep on X", "pressure-test this", or "what aren't you telling me". Produces a tight report; proposes moves but does not auto-edit.
+description: Deep pass on one artifact — verify load-bearing claims structurally, surface angles a default answer would prune, red-team from a fresh-context subagent. Use when the user invokes /scrutinize [target], or says "go over this thoroughly", "go deep on X", "pressure-test this", or "what aren't you telling me". Also covers an architecture-width / AI-executor pain audit when the target is a codebase or design — "width scan", "architecture-width scan", "coupling audit", "maintainability/architecture-debt audit". Proposes moves but does not auto-edit.
 ---
 
 # scrutinize
@@ -63,6 +63,22 @@ thoroughly scrutinize the wrong thing.
    - **Adversary** — its findings, then your judgement: which land, which don't, why.
    - **So what** — optional, ≤3 bullets: the concrete moves (edit, add a link, open a
      question). Propose; don't auto-write unless asked.
+
+## Optional angle: architecture width (AI-executor lens)
+
+When the target is a codebase, module boundary, or design (not a doc/claim), one of the
+pruned-3 angles (step 2) can be this lens instead of a generic one: *"for the next likely
+change, what must an executor read, infer, edit, and validate to avoid breaking hidden
+invariants?"* Walk one or two concrete next-change scenarios (add a feature/concept, change
+one policy/rule, add one variant) and flag which pain category bites: discovery (hard to
+find the owner/source-of-truth), ownership (unclear who owns a rule/identity), context
+(one change needs broad simultaneous reads), coordination (synchronized cross-subsystem
+edits), contracts (stringly protocols standing in for typed ones), invariants (rules living
+away from the edit surface), validation (only broad runs catch local mistakes), or review
+(large diffs mixing unrelated concepts). Report it as one pruned angle with a one-line
+target shape, not a separate hotspot backlog — if the finding is big enough to warrant a
+prioritized backlog across many files, say so and hand it off as a follow-up scope rather
+than inflating this report.
 
 ## Calibration
 

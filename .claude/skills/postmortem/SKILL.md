@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: Three-step incident analysis — diagnose a costly or silent failure, prescribe the governance change that would have caught it, then eval whether the change actually alters behavior. Use when the user invokes /postmortem [incident description | path to doc], says "post-mortem on X", "run a postmortem", or flags something with --label postmortem. For large, multi-session, or structurally costly failures worth architectural prevention — NOT a routine takeaway (that's /flag → /mine-session).
+description: Incident analysis — diagnose a costly or silent failure and prescribe the governance change that would have caught it. Use when the user invokes /postmortem [incident description | path to doc], says "post-mortem on X", "run a postmortem", or flags something with --label postmortem. For large, multi-session, or structurally costly failures — NOT a routine takeaway (that's /flag → /mine-session).
 ---
 
 # postmortem
@@ -33,6 +33,10 @@ confirmed.**
 - **Duration** — how long between when the failure became possible and when it surfaced.
 - **Root cause** — the deepest decision or assumption behind it, not the surface symptom.
 - **Governance gap** — the rule, trigger, audit step, or escalation path that was absent.
+- **Behavioral record** — when the incident is something the agent did mid-session,
+  extract the ordered tool-call window around it from the session transcript
+  (`tools/extract_session.py`; transcripts live under `~/.claude/projects/<project>/`)
+  and diagnose from what the agent *actually did*, not the narrative summary.
 
 Surface it and wait for the user to confirm or correct before proceeding.
 

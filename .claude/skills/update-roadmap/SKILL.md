@@ -1,6 +1,6 @@
 ---
 name: update-roadmap
-description: Govern the upkeep of docs/road.md — add a phase, update a phase's status/exit, or capture a forward-scoped item into the future phase it belongs to so it isn't lost. Keeps phases at refinement-conversation altitude (forward-looking, not pre-implemented). Asks clarifying questions until intent is clear, drafts following the existing roadmap template, and confirms before editing the file.
+description: Govern the upkeep of docs/road.md — add a phase, update a phase's status/exit, or capture a forward-scoped item into the future phase it belongs to. Keeps phases at refinement-conversation altitude (forward-looking, not pre-implemented); confirms before editing.
 ---
 
 # update-roadmap

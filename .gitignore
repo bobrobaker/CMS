@@ -1,6 +1,7 @@
-# The Monition store is per-project, personal data — firings are session telemetry.
-# It stays local and is never published: a fork's bootstrap runs `monition init` to
-# create a fresh store. (Applies to any repo that adopts monition, not just this one.)
+# Monition store residue. The store normally lives at the cross-repo hub
+# ($CMS_LANDING_ZONE/monition), not inside this repo; a standalone fork with no hub
+# gets a local monition/ store here instead. Either way it is personal data (firings
+# are session telemetry) and never published — these patterns keep a local store out.
 monition/.dolt/
 monition/store.db
 monition/dump.sql

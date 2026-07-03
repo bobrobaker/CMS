@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "command -v monition >/dev/null 2>&1 || exit 0; d=\"${XDG_STATE_HOME:-$HOME/.local/state}/monition\"; mkdir -p \"$d\"; monition fire-hook 2>>\"$d/hook-errors.log\" || true"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/craft_reminder.py\""
           }
         ]
       }

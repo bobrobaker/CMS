@@ -10,6 +10,10 @@ python3 "$ROOT/tools/test_lint_mirror.py" >/dev/null || { python3 "$ROOT/tools/t
 python3 "$ROOT/tools/test_flag_corpus.py" >/dev/null || { python3 "$ROOT/tools/test_flag_corpus.py"; exit 1; }
 # Behavioral guard for the deploy-time settings merges (merge-not-clobber, global-archive split).
 python3 "$ROOT/tools/test_deploy_settings.py" >/dev/null || { python3 "$ROOT/tools/test_deploy_settings.py"; exit 1; }
+# Behavioral guard for the tier-2 craft reminder (rule merge, per-pointer markers, fail-open).
+python3 "$ROOT/tools/test_craft_reminder.py" >/dev/null || { python3 "$ROOT/tools/test_craft_reminder.py"; exit 1; }
+# Behavioral guard for the SessionEnd token-counting hook (summing, marker dedup, fail-open).
+python3 "$ROOT/tools/test_session_tokens.py" >/dev/null || { python3 "$ROOT/tools/test_session_tokens.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
 # Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).

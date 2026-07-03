@@ -4,14 +4,18 @@
 codification (`/codify`) — after the lesson is drafted, before the consent-gate
 proposal. Output: a destination plus one line of reasoning, shown at the gate.
 
-**Version:** routing v3 (2026-06-20). This is the canonical text; monition's
+**Version:** routing v5 (2026-07-01). This is the canonical text; monition's
 mine-session skill template carries a domain-stripped copy (confer resolution,
 2026-06-12). Bump this version on any change to the tests and hand off to
 monition once — `monition sync` propagates from there. (v2: test 4 names the three
-CLAUDE.md scopes. v3: the re-injection precondition below.) The `routing vN` token on
+CLAUDE.md scopes. v3: the re-injection precondition. v4: the scope+audience split
+extended to skill files in test 4. v5: the mine-session canonical gains the recall
+sweep in the rating pass and violation-signature authoring at row birth.) The `routing vN` token on
 this line is a **parsed contract**: monition runs a dev-only parity test that reads it
 and fails when its mirrored `ROUTING_VERSION` has fallen behind — so keep the
 `**Version:** routing vN` format stable, and a bump here is the signal to re-strip.
+
+## Precondition: the home must re-inject
 
 **Precondition — the home must re-inject at S.** A lesson is *captured* only if its
 destination is reloaded into context when S recurs: a row fires via its hook, a
@@ -21,6 +25,8 @@ the lesson no matter how well it's written — most commonly a **commit message*
 one-off doc nobody opens at S), which is invisible until deliberate git archaeology.
 "It's in the commit" is not capture. Reject a non-re-injecting home and fall to the
 next decisive test; prefer a row when nothing re-injecting fits.
+
+## The ordered tests
 
 Run the tests in order; the first decisive hit wins. Under uncertainty, prefer the
 row (test 3): it is the only tier with an eval loop, and it retires cleanly.
@@ -69,6 +75,8 @@ row (test 3): it is the only tier with an eval loop, and it retires cleanly.
    ambiguous shadows are WARN. For semantic artifacts — shipped prompts, rubrics,
    judge criteria — the project's eval suite plays the linter's role: a lesson
    landing in one must pass it before the consent gate closes.
+
+## Re-route at audit cadence
 
 **Re-route at audit cadence.** A row with a strong helpful record and a stable
 footprint folds into its owning surface and is retired; always-on prose that stops

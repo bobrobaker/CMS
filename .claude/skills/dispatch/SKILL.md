@@ -22,8 +22,10 @@ description: Run the dispatch path — turn a roadmap phase discussion into a wo
    mismatch first rather than silently translating it. Before report-first, if
    `docs/debt.md` exists, grep it for the files this phase touches; surface any hits
    with a fold-in / sibling / parked call (fold in only within budget).
-3. **To create a new workstream** (phase exceeds a session): read
-   `docs/prompts/workstream_bucket_generator.md` in full, hold the phase discussion
+3. **To create a new workstream** (phase exceeds a session): read the generator
+   prompt in full — `docs/prompts/workstream_bucket_generator.md` (in CMS itself,
+   where it is the shipped template: `starter/prompts/workstream_bucket_generator.md`)
+   — then hold the phase discussion
    (input: the relevant `docs/road.md` phase + anything the user pastes), then
    generate the parent + bucket files per the prompt, reporting files created /
    assumptions / compression rationale / risks.

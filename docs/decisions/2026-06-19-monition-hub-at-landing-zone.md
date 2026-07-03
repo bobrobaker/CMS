@@ -14,6 +14,22 @@ CMS owns standing up the hub and populating `MONITION_STORE`:
   set in Claude `settings.json` `env` (hooks inherit them). That mapping is **personal
   config and stays out of this committed tree** (forkable hygiene); the literal machine
   path is not recorded here.
+  > **Extended 2026-07-02 (impl):** monition's two opt-in warm daemons —
+  > `MONITION_SQL_SERVER` (resident `dolt sql-server`, fixes concurrent Dolt writes
+  > losing ~7/10 firings under contention) and `MONITION_EMBED_DAEMON` (warm embedding
+  > model, kills the ~1s cold load per semantic-eligible prompt) — are live-validated as
+  > of this date (hook latency roughly halves, variance disappears) and join
+  > `MONITION_STORE` in that same hand-set global `env` block. This is still the manual,
+  > personal step described above, **not** code `bootstrap.sh` runs — verified structurally:
+  > no path in `bootstrap.sh`/`tools/deploy_settings.py` writes to the global
+  > `~/.claude/settings.json` (`set-env` and `monition instrument` both target a target
+  > repo's *per-repo* `.claude/settings.local.json`; `link_global()`'s only global writes
+  > are the skills symlinks and the `~/.claude/cms` anchor). Monition's
+  > `docs/decisions/2026-06-19-dolt-sql-server-write-path.md` says "CMS sets it
+  > machine-wide alongside `MONITION_STORE`" — read that as *this convention*, not as a
+  > `bootstrap.sh` write; `link_global()` now prints a reminder for the two flags at the
+  > same point it prints the SessionEnd-hook/MCP reminder, and `--doctor` WARNs when a
+  > Dolt hub or the embed extra is present without its matching daemon flag.
 - *For forks:* `bootstrap.sh` is the fork path — it `dolt init`s the hub at the resolved
   landing-zone path once per machine and exports `MONITION_STORE`.
   > **Corrected 2026-06-19 (impl):** "`dolt init`s the hub" is wrong for the fork path —

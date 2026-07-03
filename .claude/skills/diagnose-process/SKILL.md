@@ -1,6 +1,6 @@
 ---
 name: diagnose-process
-description: Diagnose the running PROCESS (and scheduled triggers) before touching files when a tool/CLI misbehaves after an update, when an uninstalled or deleted artifact keeps regenerating, when a "fixed" problem keeps coming back, or when something can't start because a lock is held. Use when the user says a command is broken/flaky after an update, "I deleted it but it came back", "it still says X after I fixed it", or "can't launch a new session/instance". Rules out mundane causes first, then establishes process+topology ground truth; surfaces findings, asks before killing or deleting.
+description: Diagnose the running PROCESS (and scheduled triggers) before touching files. Use when a tool/CLI is broken/flaky after an update, "I deleted it but it came back" (an artifact keeps regenerating), "it still says X after I fixed it", "can't launch a new session/instance", or something can't start because a lock is held. Rules out mundane causes first; asks before killing or deleting.
 ---
 
 # diagnose-process
