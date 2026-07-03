@@ -114,3 +114,12 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
 - A runway-scoped meta-freeze was recommended by the 2026-07-02 audit. The user
   refused: a deliberate choice to continue meta work post-fathom-release before
   returning to portfolio projects. Do not re-raise this without new information.
+- [ ] **cms update vs monition-sync forkgen collision** (found at 2026-07-02 close):
+  `update_target`'s `cp -R .claude/skills/.` overwrote monition's generated fork-variant
+  `mine-session/SKILL.md` with CMS's upstream variant; `monition sync` then WARNs
+  "locally edited — left alone" and `test_generated_matches_cms_regen` stays red even
+  after regen (the regen commit 28470e9 is directionally correct; the skill-file fight
+  is the remaining cause). Two propagation mechanisms own the same file — decide the
+  owner (likely: cms update must skip forkgen-swapped skills, or monition sync must
+  re-splice after update). t33's drift class exactly. Also audit the other four forks'
+  mine-session for the same clobber.
