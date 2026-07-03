@@ -14,7 +14,7 @@ edited and append anything deferred here, with enough locus to act on it cold.
 
 ## Shelf
 
-- [ ] `~/.claude/skills/agents-view` — the skill is a loose, untracked directory (no git
+- [x] (Done 2026-07-02: homed in dotfiles, symlink repointed.) `~/.claude/skills/agents-view` — the skill is a loose, untracked directory (no git
   home); it survives only until the next reimage. Needs a repo to live in.
 - [x] (Done 2026-07-02: surgical-commits was already owned by /eos step 3; replay-fidelity
   migrated to hub row t215; deferred-work superseded by monition road.md. Index carries
@@ -22,7 +22,7 @@ edited and append anything deferred here, with enough locus to act on it cold.
   violate the context-over-auto-memory policy (durable knowledge belongs in that
   project's own takeaway store / decisions, not harness auto-memory). Migrate-or-delete;
   brain2 already got this treatment on 2026-06-18.
-- [ ] `~/.claude/projects/` retention — 769MB across 1,110 transcript dirs, unbounded
+- [x] (Done 2026-07-02: housekeep probe J added, ages by first-record timestamp — mtime proved unreliable; 0 prunable today, actionable ~August.) `~/.claude/projects/` retention — 769MB across 1,110 transcript dirs, unbounded
   growth. Candidate for an age-based prune housekeep probe.
 - [x] Global permissions (`~/.claude/settings.json`) — confirmed intentional by the
   user 2026-07-02; reviewed, no change. (Original concern:) allow-list grants `Bash(python*)`
@@ -32,13 +32,13 @@ edited and append anything deferred here, with enough locus to act on it cold.
   VVsim entry also corrected to dormant-since-2026-06-14. (Original:) retirement
   approved (dead 62 days). Concrete action
   still TBD: a workboard note or archive, explicitly no deletion.
-- [ ] `.claude/skills/*/SKILL.md` — 24 skill descriptions run 250–754 chars each and are
+- [x] (Done 2026-07-02: 17 descriptions trimmed, −1,980 chars / 21.7%; five left as already-tight.) `.claude/skills/*/SKILL.md` — 24 skill descriptions run 250–754 chars each and are
   loaded into every session in every project. Trim-pass candidate once a session can
   spare the read-budget attention.
-- [ ] `method/lesson-routing.md` — has zero `## ` headings, which defeats the
+- [x] (Done 2026-07-02: three headings added; routing-vN contract line untouched.) `method/lesson-routing.md` — has zero `## ` headings, which defeats the
   mandated `grep -n "^##"` structure-scan convention (CLAUDE.md's read-budget rule).
   Needs headings added.
-- [ ] `dolt` 2.1.6 → 2.1.10 — upgrade available, low priority.
+- [x] `dolt` 2.1.6 → 2.1.10 — done 2026-07-02 (binary swapped, hub sql-server restarted on 2.1.10, monition verified).
 - [x] `~/.claude/tool_logger.py` hook ↔ `VVsim/.claude/commands/diagnose-mistake.md` —
   retired as a pair 2026-07-02 (user call): the command routed fixes to pre-CMS
   vocabulary (`introspect_notes.md`, `.claude/rules/`) and was used once ever;
@@ -59,6 +59,15 @@ edited and append anything deferred here, with enough locus to act on it cold.
   `2026-06-18-dolt-default-ours-sqlite-external.md` (whose flip-flop note flagged the
   postmortem). One small follow-on it surfaced: check monition's README/init help for
   any flat "SQLite is the default" lacking the two-audience qualifier.
+- [ ] **cms update vs monition-sync forkgen collision** (found at 2026-07-02 close):
+  `update_target`'s `cp -R .claude/skills/.` overwrote monition's generated fork-variant
+  `mine-session/SKILL.md` with CMS's upstream variant; `monition sync` then WARNs
+  "locally edited — left alone" and `test_generated_matches_cms_regen` stays red even
+  after regen (the regen commit 28470e9 is directionally correct; the skill-file fight
+  is the remaining cause). Two propagation mechanisms own the same file — decide the
+  owner (likely: cms update must skip forkgen-swapped skills, or monition sync must
+  re-splice after update). t33's drift class exactly. Also audit the other four forks'
+  mine-session for the same clobber.
 - [ ] Fractional-factorial eval-helper idea (handoff deleted 2026-07-02, was 16d
   stale with nothing built): a runnable helper measuring how well a CLAUDE.md line
   reduces its target failure, via fractional-factorial design + stats. Three design
@@ -114,12 +123,3 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
 - A runway-scoped meta-freeze was recommended by the 2026-07-02 audit. The user
   refused: a deliberate choice to continue meta work post-fathom-release before
   returning to portfolio projects. Do not re-raise this without new information.
-- [ ] **cms update vs monition-sync forkgen collision** (found at 2026-07-02 close):
-  `update_target`'s `cp -R .claude/skills/.` overwrote monition's generated fork-variant
-  `mine-session/SKILL.md` with CMS's upstream variant; `monition sync` then WARNs
-  "locally edited — left alone" and `test_generated_matches_cms_regen` stays red even
-  after regen (the regen commit 28470e9 is directionally correct; the skill-file fight
-  is the remaining cause). Two propagation mechanisms own the same file — decide the
-  owner (likely: cms update must skip forkgen-swapped skills, or monition sync must
-  re-splice after update). t33's drift class exactly. Also audit the other four forks'
-  mine-session for the same clobber.
