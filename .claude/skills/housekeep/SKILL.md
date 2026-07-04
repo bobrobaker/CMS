@@ -266,6 +266,28 @@ A's `--dry-run` still lists as unwrapped (wrap first, then prune). State in the
 proposal that a pruned session keeps its archive summary + index entry but loses the
 raw-text retrieval rung.
 
+### K — Machinery-integration eval canary (weekly, CMS repos)
+
+CMS-machinery repos ship `tools/eval_canary.py` — an integration canary asserting the
+machinery's cross-surface wiring (bootstrap→`--doctor`, craft-reminder injection,
+mine-session routing) is intact. It self-gates on a weekly cadence, so this pass invokes it
+every run and lets the harness decide whether it is actually due:
+
+```bash
+root="$(git rev-parse --show-toplevel 2>/dev/null)"   # anchor to repo root, not cwd
+if [ -n "$root" ] && [ -f "$root/tools/eval_canary.py" ]; then
+  out="$(python3 "$root/tools/eval_canary.py" --if-due 7 2>&1)"; rc=$?
+  [ "$rc" -ne 0 ] && printf '%s\n' "$out"   # surface ONLY on a non-zero exit
+fi
+```
+
+- **File absent** (not a CMS-machinery repo) → skip the category silently.
+- **Not due** (< 7 days since the last sweep) → the harness prints nothing; surface nothing.
+- **Due + every task passes** → clean; stay silent (housekeep's default).
+- **Non-zero exit** → **propose**: a task failed twice consecutively (an ALERT — a real
+  wiring/config regression) or the harness itself errored. Surface its output verbatim so the
+  failing task is named. This is a health check, not a reap — nothing is deleted.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are

@@ -93,22 +93,45 @@ criteria above.
 
 ---
 
-## Phase 2 (candidate) — machinery-integration eval (layer-1 canary)
+### Phase 2 — machinery-integration eval (layer-1 canary)
 
-Not yet dispatched; accepted as a candidate 2026-07-03 (source: the 2026-07-03
-machinery audit, `docs/research/2026-07-03-ai-machinery-audit/synthesis.md` Gap 5).
+`<----- Ongoing phase ----->`
 
-Three headless tasks, weekly cron, programmatic assertions only (no LLM judge):
-(1) bootstrap a scratch fork → `--doctor` clean + hooks wired; (2) a session editing
-governed material receives the craft-reminder injection; (3) a synthetic mine-session
-routes a planted lesson to the expected store/kind/reach. Alert rule: any task
-failing twice consecutively. Scope honesty: this is an integration canary — it
-catches wiring/config regressions, not vendor-model regressions; judgment-sensitive
-tasks with tolerance bands are a later increment, not this phase.
+**Status:** active (promoted from candidate 2026-07-03; source: the 2026-07-03 machinery
+audit, `docs/research/2026-07-03-ai-machinery-audit/synthesis.md` Gap 5).
 
-**Exit:** the three tasks run headlessly on a schedule with a committed baseline, and
-one deliberately-broken wiring (unwired hook) is caught by the canary before a human
-notices it.
+**Deliverable:** A weekly headless integration canary that programmatically asserts the CMS
+machinery's cross-surface wiring is intact — bootstrap/doctor, craft-reminder injection, and
+mine-session routing — and alerts when any task regresses.
+
+**Surfaces:** `tools/` (new canary harness + per-task programmatic assertions); a committed
+baseline fixture; schedule/cron wiring; exercises `bootstrap.sh --doctor`, the craft-reminder
+hook, and the mine-session routing path.
+
+**Design:**
+
+- Three headless tasks, **programmatic assertions only — no LLM judge** (judgment-sensitive
+  tasks with tolerance bands are a later increment, not this phase): (1) bootstrap a scratch
+  fork → `--doctor` clean + hooks wired; (2) a session editing governed material receives the
+  craft-reminder injection; (3) a synthetic mine-session routes a planted lesson to the
+  expected store/kind/reach.
+- Weekly cron; alert when any task fails **twice consecutively** (debounce single flakes).
+- **Scope honesty:** integration canary — catches wiring/config regressions, not vendor-model
+  regressions.
+- **Cost control:** headless `claude -p` loads a ~21k-token prefix; strip with `--tools ""` +
+  `--setting-sources project,local` (~150 tokens) — monition t107.
+
+**File/doc changes:** new `tools/` canary harness + assertions; committed baseline fixture;
+cron/schedule entry; a `docs/decisions/` record; `docs/DESIGN.md` registry update.
+
+**Validation:** the three tasks run headlessly against the committed baseline and pass; a
+deliberately-broken wiring (unwired hook) is caught before a human notices; runs are debounced
+so a single failure raises no alert.
+
+**Estimate:** medium — one harness plus three self-contained task assertions.
+
+**Exit:** the three tasks run headlessly on a schedule with a committed baseline, and one
+deliberately-broken wiring (unwired hook) is caught by the canary before a human notices it.
 
 ---
 

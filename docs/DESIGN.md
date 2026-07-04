@@ -157,12 +157,26 @@ repo stays silent (self-gated); the backfill never writes without confirmation; 
 check fails on an unresolved referenced path; CMS's own `DESIGN.md` validates under the new
 convention (dogfood). Execution: `docs/workstreams/fleet-standard-propagation/`.
 
+### Active (2026-07-03) — Phase 2: machinery-integration eval canary (layer-1)
+
+The layer-1 integration canary is **built** (harness `tools/eval_canary.py` + guard
+`tools/test_eval_canary.py`, wired into pre-commit): three programmatic tasks —
+bootstrap→`--doctor`, craft-reminder injection, mine-session routing plumbing — at fidelity
+option (B): declarative wiring assert + direct behavior assert, **no live `claude -p`**.
+Rationale and the rejected fidelities (A/C): `docs/decisions/2026-07-03-eval-canary-fidelity.md`;
+spec + exit: road.md Phase 2. It catches wiring/config regressions, **not** vendor-model
+regressions — that judgment-band layer is the deferred **Tier-3 evaluation discipline** below,
+a distinct increment *above* this one. Cadence: folded into `/housekeep` §K (the harness
+`--if-due 7` self-gate), which runs it weekly and surfaces only on an alert — not a standalone
+cron. See the decision doc's 2026-07-03 update.
+
 All deferred work below shares one philosophy with the firing engine: gated on accumulated
 evidence, never built speculatively.
 
 - **Retrieval routing maturation** — an eval-governed router choosing grep vs. semantic
   search over the governance corpus, gated on retrievals-log volume.
-- **Tier-3 evaluation discipline** — evaluating governance lines / prompts / skill text by
+- **Tier-3 evaluation discipline** — the judgment-band layer *above* the now-active layer-1
+  integration canary (see above): evaluating governance lines / prompts / skill text by
   the *rate of a named failure mode* over production traces (the build-out of "evals are
   the linter for semantic artifacts"). CMS owns + ships the discipline (a `method/` doc +
   per-project harness, never a central service); Monition owns + exposes the row-coupled

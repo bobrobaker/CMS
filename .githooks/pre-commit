@@ -14,6 +14,8 @@ python3 "$ROOT/tools/test_deploy_settings.py" >/dev/null || { python3 "$ROOT/too
 python3 "$ROOT/tools/test_craft_reminder.py" >/dev/null || { python3 "$ROOT/tools/test_craft_reminder.py"; exit 1; }
 # Behavioral guard for the SessionEnd token-counting hook (summing, marker dedup, fail-open).
 python3 "$ROOT/tools/test_session_tokens.py" >/dev/null || { python3 "$ROOT/tools/test_session_tokens.py"; exit 1; }
+# Guard the eval-canary's pure logic: doctor-parse, the unwired-hook catch, twice-consecutive debounce.
+python3 "$ROOT/tools/test_eval_canary.py" >/dev/null || { python3 "$ROOT/tools/test_eval_canary.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
 # Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).
