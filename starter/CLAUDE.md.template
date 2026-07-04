@@ -102,6 +102,13 @@ history → `/wrap-session`; rule or convention → `/codify`; design call plus 
 `docs/decisions/`. In a bare repo with none of this machinery, harness auto-memory is the
 right home.
 
+## Cross-harness agent rules
+
+If this repo also keeps an AGENTS.md for other agent harnesses, it is imported below —
+a harmless no-op when absent (a missing import is silently ignored):
+
+@AGENTS.md
+
 <!-- FULL PROFILE:
 ## Dispatch
 
