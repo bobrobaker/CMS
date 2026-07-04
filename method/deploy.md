@@ -81,6 +81,17 @@ Consumer-owned files are guarded, not overwritten:
   with loud merge instructions.
 - `core.hooksPath` — if already set to something other than `.githooks`, it is left alone
   (repointing it would silently disable the repo's own hooks); `--force-hookspath` overrides.
+- **Fork-variant skills** — a skill whose *deployed* form is monition's regen output (marked
+  by a `*.fork-overrides.md` sibling in its skill dir; today only `mine-session`) is **excluded
+  from the skill copy** and its authoring-only `*.fork-overrides.md` is never copied. CMS's
+  canonical copy of such a skill is an authoring *source* (carries `forkgen:` strip/swap
+  markers), not a deployable artifact — only monition's regen produces the domain-stripped fork
+  variant. `monition sync`/`instrument` materializes it *stamped*; a raw CMS copy would be the
+  wrong body AND unstamped, which pins monition's `_managed_state → edited` and makes sync
+  WARN-skip it forever. apply-to-target relies on the `monition instrument` step (which runs
+  after the copy) to install it; `--update` — which never reaches `instrument` — runs
+  `monition sync` explicitly so a refresh still delivers currency. See
+  `docs/decisions/2026-07-03-fork-variant-skills-monition-owned.md`.
 
 Apply-to-target also records the deploying clone's absolute path as `env.CMS_SRC` in the
 target's gitignored `.claude/settings.local.json` (merged via `deploy_settings.py set-env`).
