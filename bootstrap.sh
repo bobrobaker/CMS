@@ -151,6 +151,33 @@ refresh_manifest() {
   log "refreshed tools/.cms-manifest @ $(cut -c1-12 "$root/tools/.cms-manifest")"
 }
 
+# Vendor CMS-managed skills into a fork, EXCEPT skills whose *deployed* form is monition's
+# regen output — marked by a `*.fork-overrides.md` sibling in the skill dir. CMS's canonical
+# copy of such a skill is an authoring SOURCE (carries `forkgen:` strip/swap markers), not a
+# deployable artifact; only monition's regen produces the domain-stripped fork variant, which
+# `monition sync`/`instrument` materializes stamped. Raw-copying the source ships the wrong
+# body AND unstamped, which pins monition's `_managed_state -> edited` and WARN-skips the copy
+# forever. So we skip the whole dir (body + the authoring-only fork-overrides file) and leave
+# that skill to monition. The marker gates it, so a future fork-variant skill auto-excludes —
+# no per-skill list to maintain. See docs/decisions/2026-07-03-fork-variant-skills-monition-owned.md.
+vendor_skills() {  # $1 = src root, $2 = dst root
+  local src="$1" dst="$2" d name
+  mkdir -p "$dst/.claude/skills"
+  for d in "$src"/.claude/skills/*/; do
+    [ -d "$d" ] || continue
+    name="$(basename "$d")"
+    if ls "$d"*.fork-overrides.md >/dev/null 2>&1; then
+      log "skipping skill $name — monition sync owns its deployed form (fork-overrides marker)"
+      continue
+    fi
+    # Copy CONTENTS (`$d` ends in `/`, so `$d.` is the dir's contents) into the dest skill
+    # dir, matching the original `skills/.` merge — a per-dir `cp -R "$d" dest` would nest
+    # `dest/$name/$name` on a re-run where dest already exists (the --update path).
+    mkdir -p "$dst/.claude/skills/$name"
+    cp -R "$d". "$dst/.claude/skills/$name/"
+  done
+}
+
 # `--update`: re-vendor the managed set + stamp into an already-bootstrapped fork, opt-in.
 # Touches only CMS-managed files; never the fork's lint.py wrapper, starter docs, or store.
 update_target() {  # $1 = target path
@@ -172,7 +199,7 @@ update_target() {  # $1 = target path
   for t in $MANAGED_TOOLS; do
     [ -f "$src/tools/$t" ] && cp "$src/tools/$t" "$dst/tools/$t"
   done
-  cp -R "$src/.claude/skills/." "$dst/.claude/skills/"
+  vendor_skills "$src" "$dst"
   if lay_down_lint_wrapper "$dst"; then
     write_stamp "$dst"
   else
@@ -181,6 +208,19 @@ update_target() {  # $1 = target path
   fi
   log "managed tools + skills re-vendored; fork-local lint.py and extensions untouched"
   log "(the version stamp covers $MANAGED_TOOLS; skill drift is refreshed but unstamped)"
+  # Fork-variant skills (mine-session) were excluded from the re-vendor above — monition owns
+  # their stamped, domain-stripped deployed form. --update, unlike apply-to-target, never reaches
+  # `monition instrument`, so without this a refresh would leave those skills stale. Run monition
+  # sync to actually deliver their currency. Fail open if the CLI is absent (hooks fail open too).
+  if command -v monition >/dev/null 2>&1; then
+    if monition sync --root "$dst" >/dev/null 2>&1; then
+      log "refreshed monition-owned skills (mine-session) via monition sync"
+    else
+      warn "monition sync did not complete — refresh monition-owned skills manually in $dst"
+    fi
+  else
+    warn "monition CLI absent — monition-owned skills not refreshed (run 'monition sync' in $dst)"
+  fi
   # Keep the recovery pointer current: if this clone moved since the deploy, the recorded
   # env.CMS_SRC is where a future /deploy or --update would (wrongly) look.
   python3 "$DEPLOY_SETTINGS" set-env "$dst" "CMS_SRC=$src" \
@@ -745,8 +785,8 @@ apply_to_target() {
 
   step "skills, hooks, and portable tools"
   mkdir -p "$dst/.claude/skills" "$dst/.githooks" "$dst/tools"
-  cp -R "$src/.claude/skills/." "$dst/.claude/skills/"
-  log "copied .claude/skills/"
+  vendor_skills "$src" "$dst"
+  log "copied .claude/skills/ (fork-variant skills excluded — monition instrument installs them below)"
   # Per-project machinery only. NOT cms_lint.py (CMS's own linter), and NOT the
   # session-archive tooling (session_tokens.py / extract_session.py): the archive is
   # global, so its tooling resolves through the ~/.claude/cms anchor, not a per-repo copy.
