@@ -40,11 +40,18 @@ You are mining this session for takeaways. The store's semantics live in
      anyway) is payload evidence, not trigger evidence — worth a note in the mining
      pass, not a noise rating. **Fail open** like the rest of the pass: CLI, store, or
      transcript absent → skip.
-   - **Walk the top N** (a budget scaled to session size, so rating rigor doesn't
-     thin out just because the session ran long: ~15 per ~2 MB of transcript JSONL
-     (`wc -c < <transcript>` — the same path the recall sweep uses), minimum 15, no
-     hard cap — the natural stops still govern: head, not tail; stop when
-     `rating_priority` drops off or evidence runs out — skip the long tail). For each firing, look in the
+   - **Walk the top N — first compute N, don't eyeball it.** The budget scales with
+     session size so rating rigor doesn't thin out just because the session ran long.
+     Run `wc -c < <transcript>` (the same path the recall sweep uses) and set
+     **N = max(15, round(15 × bytes / 2 000 000))**. **State the byte count and the
+     resulting N before you walk** — N is how many firings you *examine*, not how many
+     you rate. On a multi-hour / high-fire session N is in the dozens–hundreds; if
+     you're examining ~15 after a long session you skipped this computation and are
+     anchoring on the number 15. Rating stays evidence-gated (most examined firings
+     won't rate — that's correct, not a shortfall), but you must *look at* all N
+     firings before invoking a stop: the natural stops (`rating_priority` drops off, or
+     evidence runs out) close the **tail**, not the head — a long session has a long
+     head, so don't reach for them early. For each firing, look in the
      session for evidence the injected `one_liner` (it fired at `trigger_context` /
      `situation`) actually mattered: it **changed an action**, was **visibly ignored**,
      or was **contradicted** by what you did.
