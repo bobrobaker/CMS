@@ -40,8 +40,11 @@ You are mining this session for takeaways. The store's semantics live in
      anyway) is payload evidence, not trigger evidence — worth a note in the mining
      pass, not a noise rating. **Fail open** like the rest of the pass: CLI, store, or
      transcript absent → skip.
-   - **Walk the top N** (a budget — ~15; head, not tail; stop when `rating_priority`
-     drops off or evidence runs out — skip the long tail). For each firing, look in the
+   - **Walk the top N** (a budget scaled to session size, so rating rigor doesn't
+     thin out just because the session ran long: ~15 per ~2 MB of transcript JSONL
+     (`wc -c < <transcript>` — the same path the recall sweep uses), minimum 15, no
+     hard cap — the natural stops still govern: head, not tail; stop when
+     `rating_priority` drops off or evidence runs out — skip the long tail). For each firing, look in the
      session for evidence the injected `one_liner` (it fired at `trigger_context` /
      `situation`) actually mattered: it **changed an action**, was **visibly ignored**,
      or was **contradicted** by what you did.
@@ -52,7 +55,7 @@ You are mining this session for takeaways. The store's semantics live in
      specific-context match) over-firing is noise per-firing, as before. For a broad /
      `on_demand` **batch dump** where the whole batch was ignored, rate the batch `noise`
      in bulk with one shared citation ("session-opening dump, none applied") — bulk noise
-     labels are mechanical and sit outside the ~15 budget, which guards
+     labels are mechanical and sit outside the scaled budget, which guards
      individually-evidenced labels. The distinction that still matters is *applied vs.
      didn't apply*, not broad vs. precise: a row that fired on a genuinely matching
      moment where you already complied is a true positive, not noise — leave it unrated
