@@ -73,6 +73,15 @@ You are mining this session for takeaways. The store's semantics live in
      than a label missing at random. A cold dispatch-mine (an architect mining workers it
      didn't live through; see `method/learning-loop.md` §Wiring) evidences ~nothing and
      correctly proposes ~0.
+   - **`unrated` carries the same burden as a rating — it is not the free residual.**
+     To leave a firing *unrated* you must be able to state one of: `matched+complied:
+     <the already-taken action it fired on>` or `fired∧hit: <the warned failure that
+     happened anyway>`. If you can write **neither**, the fire was irrelevant → rate it
+     **`noise`**, not unrated. Irrelevance is itself the noise evidence — this is **not**
+     the "no evidence → no rating" case (that clause blocks a *forced `helpful`*, never a
+     diluting fire's `noise` label). Forces the per-firing test "did this row's advice
+     actually apply here?" and closes the escape hatch where ambiguous/irrelevant fires
+     get swept into unrated to dodge a judgment.
    - **Present ONE batch for bulk confirm** — all proposed ratings at once, each line
      `<firing_id> helpful|noise — <one-line evidence>`. The user accepts the batch in a
      single gesture with per-line veto/flip. This is a **lighter gate than rows** (`method/

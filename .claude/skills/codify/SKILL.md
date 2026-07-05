@@ -42,7 +42,16 @@ future behavior, so the gate is absolute: **never write before explicit acceptan
 5. **Mechanical?** Propose a linter check instead of or alongside the prose — each
    check's comment names the rule it shadows.
 
-6. **Cross-layer propagation.** If the rule is *system-general* but you're in a project
+6. **Recurring despite an existing rule?** If you're codifying a fix for a rule that
+   *already exists and keeps being violated* (you've restated it before), a louder
+   restatement won't hold — the failure is application-time, not knowledge. Restructure
+   so the wrong answer requires an affirmative false statement: **invert the burden** so
+   the tempting-but-wrong path costs a justification it can't truthfully supply (e.g.
+   give a burden-free escape-hatch category the same evidence burden as the committed
+   ones). A forcing function beats a louder declarative rule. Name the prior restatement
+   you supersede.
+
+7. **Cross-layer propagation.** If the rule is *system-general* but you're in a project
    that isn't the reference implementation, queue it — append `YYYY-MM-DD | rule |
    origin` to the landing zone's `upstream-candidates.md` (`$CMS_LANDING_ZONE`, else the
    repo's `handoffs/`) for the mirror-back sweep. When you *are* in the reference

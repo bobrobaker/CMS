@@ -26,3 +26,15 @@ audit-remediation session; accepted after structural verification against the me
 contract rather than on the edit's own summary. This is a coverage-contract change to a
 governed skill, so it lands through the consent gate with this record per "design calls
 leave a record."
+
+**Update 2026-07-04 (executability).** The reword above shipped but did not change
+behavior: `/mine-session` kept rating only ~10–15 firings on long sessions. Root cause —
+the prose *stated* `N = ~15 per ~2 MB` without forcing the model to run `wc -c` and
+COMPUTE+STATE a concrete N, so the literal `~15` anchored and the subjective tail-stop
+gave an early exit. Structural verification here confirmed the rule was *present* and
+consistent with the contract, but not that the skill would *execute* it. Fixed in commit
+`8655be1`: the walk-budget bullet now mandates computing `N = max(15, round(15×bytes/2e6))`
+and stating it before walking, and splits examine-count from rate-count. The general
+lesson (a governance edit that restates a rule doesn't change behavior unless it forces an
+executable step — verify executability, not presence) is monition row t254 (`reach:
+general`).
