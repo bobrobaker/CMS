@@ -13,9 +13,12 @@ is indexed to the semantic layer, not a replacement for it.
 **Public surface for sibling managed tools.** `backfill_decision_status.py` (co-vendored in
 the same managed set, same version stamp) imports from this module: `is_decision_doc`,
 `validate_superseded_target`, `strip_code`, `_frontmatter`, `_FM_RE`, `LINK_RE`, `md_files`,
-`ROOT`, `DECISION_STATUSES`. Treat these as a contract — they ship and version together, so a
-rename here must update the sibling in the same change (the underscore-prefixed two are a known
-exception to "private," tracked on the debt shelf for a future de-underscore pass).
+`ROOT`, `DECISION_STATUSES`, `BANNER_RE`, `SUPERSEDE_RE`. Treat these as a contract — they ship
+and version together, so a rename here must update the sibling in the same change (the
+underscore-prefixed two are a known exception to "private," tracked on the debt shelf for a
+future de-underscore pass). `BANNER_RE`/`SUPERSEDE_RE` are single-sourced here (not in the
+backfill helper) so the supersession-banner vocabulary the linter's two-headed-doc check and
+the backfill helper both key on can never fork.
 """
 import os
 import re
@@ -120,6 +123,122 @@ def validate_superseded_target(path, target):
     if not os.path.exists(resolved):
         return f"`superseded_by: {target}` resolves to no file"
     return None
+
+
+# Supersession vocabulary — single-sourced here and imported by `backfill_decision_status.py`
+# (edit both copies of the mirror, cms_lint included, together). Verb STEMS, not full words:
+# "supersedes"/"superseded"/"replaces" all match. `BANNER_RE` matches a doc-level supersession
+# banner per docs/decisions/README.md (`> **Superseded by [<date> — <slug>](<file.md>)**`); its
+# captured group is the successor link target.
+SUPERSEDE_RE = re.compile(r"supersed|deprecat|obsolet|retir|replac", re.I)
+BANNER_RE = re.compile(r"^>\s*\*\*\s*superseded by\s*\[[^\]]*\]\(([^)\s]+)\)", re.I | re.M)
+# Additional reversal vocabulary probe 1 accepts in a `## Update` as evidence the appended
+# section CONTRADICTS the top verdict (not merely amends it). Kept separate from SUPERSEDE_RE
+# because SUPERSEDE_RE is the banner-grammar vocabulary shared with the backfill helper.
+_REVERSAL_RE = re.compile(r"revers|revert|overturn|rescind|abandon|no-go|rolled back|"
+                          r"backed out|no longer (?:the|holds|stands|hold)|does not hold", re.I)
+# A `## Update`/`## Updates` heading — the append-after-a-reversal shape probe 1 detects.
+_UPDATE_RE = re.compile(r"^#{1,6}\s+updates?\b", re.I | re.M)
+# A blockquote line carrying supersession/reversal vocab counts as a reconciling top marker even
+# if it isn't the exact BANNER_RE shape (leans probe 1 toward false-negatives on partials).
+_BQ_MARKER_RE = re.compile(r"^>.*(?:supersed|revers|no longer|replac|retir).*$", re.I | re.M)
+
+
+def check_two_headed_decision(path, text):
+    """Shadows: 'reconcile a reversal to the top of a decision doc — don't append-only'
+    (docs/decisions/README.md: immutable point-in-time records + the supersession convention).
+    A doc stamped `status: decided` at the top with a later `## Update` that reverses/supersedes
+    it, and NO reconciling banner above that Update, leaves a top-down reader inheriting a dead
+    verdict. Loose semantic shadow → always WARN.
+
+    Deliberate PARTIAL supersessions are NOT flagged: per README a partial stays `status:
+    decided` and carries an inline supersession banner at the overturned claim — that banner
+    above the Update reconciles the top, so the discriminator (below) skips it. Three gates,
+    biased toward false-negatives: (1) still `status: decided` (a `superseded` doc is already
+    marked dead — `check_decision_status` owns it); (2) a later `## Update` whose text carries
+    reversal/supersession vocab (a plain addendum is not a contradiction); (3) no supersession
+    banner/marker in the region above that Update (reconciliation never reached the top)."""
+    if not is_decision_doc(path):
+        return
+    if _frontmatter(text).get("status") != "decided":
+        return
+    m = _UPDATE_RE.search(text)
+    if not m:
+        return
+    above, update = text[:m.start()], text[m.start():]
+    if not (SUPERSEDE_RE.search(update) or _REVERSAL_RE.search(update)):
+        return  # an addendum, not a reversal — no contradiction
+    if BANNER_RE.search(above) or _BQ_MARKER_RE.search(above):
+        return  # reconciliation reached the top — the deliberate partial-supersession shape
+    warn(path, "decision doc is `status: decided` but a later `## Update` reverses/supersedes it "
+               "with no reconciling banner above it — a top-down reader inherits the dead verdict. "
+               "Reconcile the top (add a banner + flip `status:`), or split out a superseding doc.")
+
+
+# Doc-currency probe 2 (gated-vs-shipped) vocabulary. Opposite polarity of
+# check_architecture_freshness: that verifies a ref RESOLVES; this fires when a ref resolves on a
+# line that calls the feature UNBUILT. General across forks — a fork with no `src/` and no
+# argparse CLI self-gates to a no-op.
+_NOT_BUILT_RE = re.compile(r"not yet implemented|not (?:yet )?built|\bunbuilt\b|"
+                           r"not shipped|gated only on", re.I)
+_TWO_TOKEN_CLI_RE = re.compile(r"`([a-z][\w.-]*)\s+([a-z][a-z0-9-]+)`")  # `tool verb` code span
+_ADD_PARSER_RE = re.compile(r"""add_parser\(\s*["']([a-z][a-z0-9-]+)["']""")
+_cli_verbs_cache = {}
+
+
+def _cli_verbs():
+    """Set of argparse subcommand verbs registered anywhere under `<ROOT>/src/**/*.py`
+    (`add_parser("verb")`). General across Python-argparse forks; empty (→ no-op) when there is
+    no `src/` or no argparse CLI. Cached per ROOT so a per-line check never re-walks the tree
+    and tests that rebind ROOT still recompute."""
+    if ROOT in _cli_verbs_cache:
+        return _cli_verbs_cache[ROOT]
+    verbs = set()
+    src = os.path.join(ROOT, "src")
+    if os.path.isdir(src):
+        for dirpath, _, names in os.walk(src):
+            for n in names:
+                if n.endswith(".py"):
+                    try:
+                        with open(os.path.join(dirpath, n), encoding="utf-8") as f:
+                            verbs.update(_ADD_PARSER_RE.findall(f.read()))
+                    except OSError:
+                        pass
+    _cli_verbs_cache[ROOT] = verbs
+    return verbs
+
+
+def check_gated_vs_shipped(path, text):
+    """Shadows: 'designed/gated language must not outlive the build' — a doc-currency drift the
+    resolve-checking arch-freshness check can't catch (its opposite polarity). Fires when a line
+    calls a feature unbuilt (`not yet implemented` / `not built` / `unbuilt` / `not shipped` /
+    `gated only on`) while a symbol it names on that line actually exists: a `` `src/…py` ``
+    (or `` `src/…py:Symbol` ``) reference that resolves in the live tree, or a `` `tool verb` ``
+    whose verb is a registered CLI subcommand (`add_parser` under `src/`). Loose semantic shadow
+    → always WARN. Reuses the arch-freshness symbol-resolution primitive; general across forks —
+    self-gates to nothing when there is no `src/` and no argparse CLI."""
+    verbs = None
+    for i, line in enumerate(text.splitlines(), 1):
+        if not _NOT_BUILT_RE.search(line):
+            continue
+        for m in _CODESPAN_RE.finditer(line):
+            tok = m.group(1).strip()
+            ref = _parse_arch_reference(tok)
+            # Local (non-cross-repo) refs into src/ only: a cross-repo ref self-gates to None in
+            # the resolver (would misread as "resolves"), and a non-src path (a doc/config file)
+            # is out of scope for "the feature's code shipped."
+            if ref is None or ref[0] is not None or not ref[1].startswith("src/"):
+                continue
+            if _resolve_arch_reference(ref, tok) is None:
+                warn(path, f"line {i}: calls `{tok}` unbuilt/gated, but it resolves in the live "
+                           "tree — reconcile, the feature shipped.")
+        if verbs is None:
+            verbs = _cli_verbs()
+        if verbs:
+            for m in _TWO_TOKEN_CLI_RE.finditer(line):
+                if m.group(2) in verbs:
+                    warn(path, f"line {i}: calls `{m.group(1)} {m.group(2)}` unbuilt/gated, but "
+                               f"`{m.group(2)}` is a registered CLI verb — reconcile, it shipped.")
 
 
 def check_decision_status(path, text):
@@ -264,7 +383,8 @@ def check_stamp_drift():
 # The managed check set. Fork-local checks are NOT added here — they live in the
 # tools/lint.py wrapper and reach run() via extra_checks.
 SHARED_CHECKS = [check_relative_links, check_opening_thesis, check_decision_status,
-                 check_architecture_freshness]
+                 check_architecture_freshness, check_two_headed_decision,
+                 check_gated_vs_shipped]
 # Repo-level managed checks: run once over the repo, not per markdown file.
 REPO_CHECKS = [check_stamp_drift]
 

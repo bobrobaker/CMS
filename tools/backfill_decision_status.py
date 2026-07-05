@@ -29,16 +29,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lint_skeleton as ls  # noqa: E402  (sibling import after path setup)
 
-# These two patterns are ADVISORY INPUT to the human gate, NOT a hardened parser of the
+# `SUPERSEDE_RE`/`BANNER_RE` are ADVISORY INPUT to the human gate, NOT a hardened parser of the
 # decision-doc format. The banner grammar's single source of truth is docs/decisions/README.md
 # ("Status frontmatter" / the supersession-banner convention); if it changes, that doc and
-# `lint_skeleton.check_decision_status` own the change — this helper only *hints*.
-# Verb STEMS, not full words: "supersedes"/"superseded"/"replaces"/"replaced by" all match.
-SUPERSEDE_RE = re.compile(r"supersed|deprecat|obsolet|retir|replac", re.I)
-# A doc-level supersession banner per docs/decisions/README.md:
-#   > **Superseded by [<date> — <slug>](<file.md>)**
-# The captured group is the successor link target → candidate `superseded_by:`.
-BANNER_RE = re.compile(r"^>\s*\*\*\s*superseded by\s*\[[^\]]*\]\(([^)\s]+)\)", re.I | re.M)
+# `lint_skeleton.check_decision_status` own the change — this helper only *hints*. The regexes
+# themselves are single-sourced in `lint_skeleton` (imported below), shared with the linter's
+# two-headed-doc check so the vocabulary can't fork; this module just re-exposes them by name.
+SUPERSEDE_RE = ls.SUPERSEDE_RE  # verb STEMS: "supersedes"/"superseded"/"replaces" all match
+BANNER_RE = ls.BANNER_RE        # doc-level `> **Superseded by [<date> — <slug>](<file.md>)**`
 # YYYY-MM-DD date prefix on a decision filename, for "is the linker later?" ordering.
 DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 

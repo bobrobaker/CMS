@@ -69,8 +69,14 @@ def run():
     with tempfile.TemporaryDirectory() as d:
         os.makedirs(os.path.join(d, "docs", "decisions"))
         os.makedirs(os.path.join(d, "core"))
+        os.makedirs(os.path.join(d, "src", "pkg"))
         open(os.path.join(d, "core", "commands.py"), "w").write("class Command: pass\n")
+        # A shipped feature: a src/ file that resolves + an argparse verb, so the gated-vs-shipped
+        # probe has something to fire on (and both copies must agree it fires).
+        open(os.path.join(d, "src", "pkg", "cli.py"), "w").write(
+            "p = sub.add_parser('replay')\nclass ReplayRunner: pass\n")
         cl.ROOT = ls.ROOT = d
+        cl._cli_verbs_cache.clear(); ls._cli_verbs_cache.clear()  # ROOT changed → drop stale cache
 
         for path in [os.path.join(d, "docs", "decisions", "x.md"),
                      os.path.join(d, "docs", "decisions", "README.md"),
@@ -83,8 +89,22 @@ def run():
             (os.path.join(d, "docs", "arch.md"),
              "---\ndoctype: architecture\n---\n`core/commands.py:Command` `core/gone.py` `../esc.md`"),
             (os.path.join(d, "docs", "typo.md"), "---\ndoctype: architecure\n---\n`core/gone.py`"),
+            # Two-headed decision: decided top + reversing ## Update, no banner → both must WARN.
+            (os.path.join(d, "docs", "decisions", "c.md"),
+             "---\nstatus: decided\n---\n## Decision\nDo X.\n## Update\nReversed — we no longer do X."),
+            # Deliberate partial: decided + inline banner above the Update → both must stay silent.
+            (os.path.join(d, "docs", "decisions", "partial.md"),
+             "---\nstatus: decided\n---\n## Decision\n> **Superseded by [later](gone.md)** in part.\n"
+             "## Update\nThat one section is replaced."),
+            # Gated-vs-shipped: unbuilt language + a resolving src ref + a registered verb → WARN;
+            # plus an unbuilt line naming a NON-existent src file → must stay silent (negative).
+            (os.path.join(d, "docs", "road.md"),
+             "The `src/pkg/cli.py` runner is not yet built.\n"
+             "The `tool replay` verb is not yet implemented.\n"
+             "The `src/pkg/ghost.py` sync is not built."),
         ]
-        for check in ("check_decision_status", "check_architecture_freshness"):
+        for check in ("check_decision_status", "check_architecture_freshness",
+                      "check_two_headed_decision", "check_gated_vs_shipped"):
             for path, text in cases:
                 cl.errors.clear(); cl.warnings.clear(); ls.errors.clear(); ls.warnings.clear()
                 getattr(cl, check)(path, text)

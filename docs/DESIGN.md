@@ -96,7 +96,9 @@ assembled from tiers.
 - **Enforcement + observability** — `tools/cms_lint.py` (pre-commit, ERROR blocks / WARN
   advises), `tools/craft_reminder.py` (pre-edit reminder on governed material), and
   `tools/session_tokens.py` (a SessionEnd hook summing API usage into the session log;
-  `--print` feeds wrap-up skills).
+  `--print` feeds wrap-up skills). The managed check set (`tools/lint_skeleton.py`, vendored to
+  forks) includes two WARN-only doc-currency probes — a two-headed decision doc and a
+  gated-vs-shipped detector — see `docs/decisions/2026-07-04-doc-currency-lint-probes.md`.
 - **Session archive** — progressive disclosure over session history: capture
   (`/wrap-session`) writes a summary + index entry; retrieval is grep over the ladder plus
   a semantic MCP server over the summary corpus. `tools/extract_session.py` lifts

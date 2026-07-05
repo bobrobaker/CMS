@@ -246,6 +246,96 @@ def check_architecture_freshness(path, text):
             error(path, msg)
 
 
+# --- Doc-currency probes (two-headed decision doc + gated-vs-shipped) -------------------------
+# Mirror of lint_skeleton's shared block — edit both together (test_lint_mirror.py guards parity).
+# SUPERSEDE_RE/BANNER_RE are single-sourced in lint_skeleton for the vendored backfill helper;
+# CMS's standalone linter keeps its own copy here (the same duplicate-not-share bargain).
+SUPERSEDE_RE = re.compile(r"supersed|deprecat|obsolet|retir|replac", re.I)
+BANNER_RE = re.compile(r"^>\s*\*\*\s*superseded by\s*\[[^\]]*\]\(([^)\s]+)\)", re.I | re.M)
+_REVERSAL_RE = re.compile(r"revers|revert|overturn|rescind|abandon|no-go|rolled back|"
+                          r"backed out|no longer (?:the|holds|stands|hold)|does not hold", re.I)
+_UPDATE_RE = re.compile(r"^#{1,6}\s+updates?\b", re.I | re.M)
+_BQ_MARKER_RE = re.compile(r"^>.*(?:supersed|revers|no longer|replac|retir).*$", re.I | re.M)
+
+
+def check_two_headed_decision(path, text):
+    """Shadows: 'reconcile a reversal to the top of a decision doc — don't append-only'
+    (docs/decisions/README.md). A `status: decided` doc with a later `## Update` that reverses/
+    supersedes it and no reconciling banner above that Update leaves a top-down reader inheriting
+    a dead verdict. Loose semantic shadow → always WARN. Deliberate PARTIAL supersessions (still
+    `decided` + an inline banner above the Update, per README) are NOT flagged. Mirror of
+    lint_skeleton.check_two_headed_decision — edit both together."""
+    if not is_decision_doc(path):
+        return
+    if _frontmatter(text).get("status") != "decided":
+        return
+    m = _UPDATE_RE.search(text)
+    if not m:
+        return
+    above, update = text[:m.start()], text[m.start():]
+    if not (SUPERSEDE_RE.search(update) or _REVERSAL_RE.search(update)):
+        return
+    if BANNER_RE.search(above) or _BQ_MARKER_RE.search(above):
+        return
+    warn(path, "decision doc is `status: decided` but a later `## Update` reverses/supersedes it "
+               "with no reconciling banner above it — a top-down reader inherits the dead verdict. "
+               "Reconcile the top (add a banner + flip `status:`), or split out a superseding doc.")
+
+
+_NOT_BUILT_RE = re.compile(r"not yet implemented|not (?:yet )?built|\bunbuilt\b|"
+                           r"not shipped|gated only on", re.I)
+_TWO_TOKEN_CLI_RE = re.compile(r"`([a-z][\w.-]*)\s+([a-z][a-z0-9-]+)`")
+_ADD_PARSER_RE = re.compile(r"""add_parser\(\s*["']([a-z][a-z0-9-]+)["']""")
+_cli_verbs_cache = {}
+
+
+def _cli_verbs():
+    """Argparse subcommand verbs registered under `<ROOT>/src/**/*.py`. Empty (→ no-op) with no
+    `src/` or no argparse CLI. Cached per ROOT. Mirror of lint_skeleton._cli_verbs — edit both."""
+    if ROOT in _cli_verbs_cache:
+        return _cli_verbs_cache[ROOT]
+    verbs = set()
+    src = os.path.join(ROOT, "src")
+    if os.path.isdir(src):
+        for dirpath, _, names in os.walk(src):
+            for n in names:
+                if n.endswith(".py"):
+                    try:
+                        with open(os.path.join(dirpath, n), encoding="utf-8") as f:
+                            verbs.update(_ADD_PARSER_RE.findall(f.read()))
+                    except OSError:
+                        pass
+    _cli_verbs_cache[ROOT] = verbs
+    return verbs
+
+
+def check_gated_vs_shipped(path, text):
+    """Shadows: 'designed/gated language must not outlive the build' — the opposite polarity of
+    check_architecture_freshness. Fires when a line calls a feature unbuilt while a `` `src/…py` ``
+    ref it names resolves, or a `` `tool verb` `` names a registered CLI subcommand. Loose
+    semantic shadow → always WARN. Self-gates with no `src/`/CLI. Mirror of
+    lint_skeleton.check_gated_vs_shipped — edit both together."""
+    verbs = None
+    for i, line in enumerate(text.splitlines(), 1):
+        if not _NOT_BUILT_RE.search(line):
+            continue
+        for m in _ARCH_CODESPAN_RE.finditer(line):
+            tok = m.group(1).strip()
+            ref = _parse_arch_reference(tok)
+            if ref is None or ref[0] is not None or not ref[1].startswith("src/"):
+                continue
+            if _resolve_arch_reference(ref, tok) is None:
+                warn(path, f"line {i}: calls `{tok}` unbuilt/gated, but it resolves in the live "
+                           "tree — reconcile, the feature shipped.")
+        if verbs is None:
+            verbs = _cli_verbs()
+        if verbs:
+            for m in _TWO_TOKEN_CLI_RE.finditer(line):
+                if m.group(2) in verbs:
+                    warn(path, f"line {i}: calls `{m.group(1)} {m.group(2)}` unbuilt/gated, but "
+                               f"`{m.group(2)}` is a registered CLI verb — reconcile, it shipped.")
+
+
 CANDIDATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\s*\|")
 
 
@@ -278,7 +368,7 @@ def check_upstream_candidates(_path=None, _text=None):
 
 
 CHECKS = [check_relative_links, check_provenance, check_unfilled_placeholders, check_decision_status,
-          check_architecture_freshness]
+          check_architecture_freshness, check_two_headed_decision, check_gated_vs_shipped]
 GLOBAL_CHECKS = [check_upstream_candidates]
 
 

@@ -30,6 +30,13 @@ The **only** edit an existing decision should receive is that supersession annot
 A Monition row fires when you edit anything under `docs/decisions/` to remind you of
 this — if you're not adding a superseding decision, you probably shouldn't be editing.
 
+The linter backstops the *reconcile-to-top* half of this convention: `check_two_headed_decision`
+(WARN) flags a `status: decided` doc whose top verdict is contradicted by a later `## Update`
+that reverses it, when no reconciling supersession banner reached the top. A deliberate partial
+supersession (still `decided`, with its inline banner above the Update — see below) is not
+flagged; the missing top banner is the discriminator. See
+`2026-07-04-doc-currency-lint-probes.md`.
+
 (While *authoring* a brand-new entry in the same change, normal drafting edits are fine —
 the rule guards *landed* decisions, not the one you're currently writing.)
 

@@ -16,6 +16,9 @@ python3 "$ROOT/tools/test_craft_reminder.py" >/dev/null || { python3 "$ROOT/tool
 python3 "$ROOT/tools/test_session_tokens.py" >/dev/null || { python3 "$ROOT/tools/test_session_tokens.py"; exit 1; }
 # Guard the eval-canary's pure logic: doctor-parse, the unwired-hook catch, twice-consecutive debounce.
 python3 "$ROOT/tools/test_eval_canary.py" >/dev/null || { python3 "$ROOT/tools/test_eval_canary.py"; exit 1; }
+# Correctness guard for the two doc-currency probes (two-headed decision doc; gated-vs-shipped),
+# including the negatives (deliberate partial-supersession, genuinely-unbuilt feature).
+python3 "$ROOT/tools/test_doc_currency.py" >/dev/null || { python3 "$ROOT/tools/test_doc_currency.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
 # Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).

@@ -102,4 +102,9 @@ split, applied to the auditor's own write permissions.
   off `monition report`; plus global skill-farm drift — loose dirs or dangling links in
   `~/.claude/skills/`). Its doc-drift / merge-candidate / always-on-leanness slice is
   still a manual "audit the docs against their own rules" prompt; codify that into a
-  skill when the project runs it a third time.
+  skill when the project runs it a third time. Two *currency* subclasses of doc-drift now
+  carry a tier-1 backstop (the tighten-the-mechanical-shadow corollary above): a decision
+  doc whose top verdict is contradicted by a later `## Update` (`check_two_headed_decision`),
+  and a doc line calling a feature unbuilt while its symbol/CLI verb already ships
+  (`check_gated_vs_shipped`) — both WARN, both loose shadows, so the tier-3 judgment pass
+  still owns the ambiguous cases.
