@@ -21,6 +21,15 @@ You are mining this session for takeaways. The store's semantics live in
    fire/suppress gate trains on rated firings, and fire-time rating collects ~none (a
    session mid-task won't stop to grade an injection). So rate here, **warm**, with the
    session still in context — LLM-auto, evidence-gated, bulk-confirmed.
+   - **The three-bucket verdict, at a glance** (the dense rules below are these three —
+     read this first so they aren't mis-skimmed):
+     - **`helpful`** — the fire *applied and shaped the action* you took.
+     - **`noise`** — the fire *did not apply to this context*; the dilution is the cost, so
+       this is the label even for a precise trigger that over-fired. "No action-changing
+       evidence" is **not** a skip reason — an irrelevant fire is `noise`, not unrated.
+     - **`unrated`** — the fire *matched the context but you already complied* (a true
+       positive needing no action). It carries the **same evidence burden** as a rating
+       (`matched+complied`), so it is not the free residual an irrelevant fire slips into.
    - **Pull the worklist, highest-value first:**
      `monition export-firings --unrated-only --session "$CLAUDE_CODE_SESSION_ID" --order-by priority`.
      `--order-by priority` is the head-not-tail metric — `rating_priority` = traffic ×

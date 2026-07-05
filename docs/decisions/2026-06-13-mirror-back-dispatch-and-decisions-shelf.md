@@ -3,6 +3,11 @@ status: decided
 ---
 # 2026-06-13 · Mirror-back: dispatch disciplines + a decisions shelf
 
+> **Partial supersession (2026-07-05):** the queue's *location* moved from per-fork
+> repo-local to one canonical hub queue — see
+> `2026-07-05-mirror-back-queue-canonical-location.md`. The dispatch disciplines and the
+> decisions-shelf substance below still stand.
+
 **Decision.** Landed three generic candidates from monition's upstream-candidates
 queue, through the consent gate, domain-stripped:
 

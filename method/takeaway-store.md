@@ -112,6 +112,18 @@ evidence-gated, bulk-confirmed.**
   for a single user accept with per-line veto — a rating is reversible eval data, not
   durable governance, so it earns a cheaper gate than a row (`write-path.md`).
 
+The live pass only labels sessions someone lived through, and the unrated backlog accrues
+faster than live mining drains it. A periodic **retro** pass closes the gap: a per-row
+sampler walks the traffic head (rows by `rating_priority`, an even-stride sample within
+each row), an evidence-gated LLM pass rates each firing's stored `situation` excerpt —
+**relevance only, since it saw the prompt and not the session** — and the labels apply with
+provenance hardwired to `retro`. Retro is asymmetric: it is *training* supervision, never
+test. The held-out relevance set stays **live-only**, and retraining the gate on retro is
+deferred until volume accrues under an evidenced weighting scheme. The store owns the
+sampler, the priority order, and the `retro` provenance; the periodic pass (a `/housekeep`
+clause) owns only cadence, budget, and consent, and runs under whatever model the sweep
+already uses — one labeler across live and retro, no model pinned.
+
 Ratings are **precision-only** signal: they grade what fired, and nothing fires on a
 missed trigger. The recall side is the **violation sweep** — a row may carry a
 `violation_signature` (a transcript regex probing the *failure event itself*, never the

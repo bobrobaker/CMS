@@ -50,6 +50,16 @@ downstream runs, on saturation, never speculatively. First landing of the mechan
 lessons skip the queue and route at mine-time:
 `docs/decisions/2026-06-14-cms-self-lessons-route-at-mine-time.md`.
 
+Two later narrowings define the channel as it now stands. **Row-shaped lessons no longer
+use the queue** (2026-07-02): a trigger lesson goes straight into the shared Monition hub
+(`reach: general`, live everywhere), so the queue carries **teaching-surface proposals
+only** — `method/`, skills, `starter/`, linter. And the queue has **one canonical
+location** — the landing-zone hub (`$CMS_LANDING_ZONE/handoffs/upstream-candidates.md`)
+when a hub is set, so every fork's candidates aggregate in one place that both producers
+(`/codify`, fork `/mine-session`) and consumers (`/housekeep` §E, the sweep) resolve;
+repo-local only for a standalone forker with no hub
+(`docs/decisions/2026-07-05-mirror-back-queue-canonical-location.md`).
+
 **Exception — takeaway machinery.** The store schema, executors, and lifecycle CLI are
 owned by the **Monition module** and evolve by version bump there, not by copy-and-drift.
 CMS declares Monition as a dependency that `bootstrap.sh` installs (SQLite backend by
@@ -158,6 +168,19 @@ and lands the evergreen architecture-doc convention.
 repo stays silent (self-gated); the backfill never writes without confirmation; the freshness
 check fails on an unresolved referenced path; CMS's own `DESIGN.md` validates under the new
 convention (dogfood). Execution: `docs/workstreams/fleet-standard-propagation/`.
+
+### Landed (2026-07-05) — audit item 3: Monition retro rating supply (`/housekeep` §G1)
+
+The last open 2026-07 machinery-audit item. A weekly, cadence-gated `/housekeep` clause
+(§G1) that produces `retro` relevance labels over the traffic head — an evidence-gated LLM
+retro-rater consuming Monition's per-row backlog sampler (`export-firings --rows-by
+unrated-priority`) and retro applier (`rate --from-export`). It feeds the existing row
+audit (§G2) and the fire/suppress gate the eval data the live mine-session pass alone can't
+keep up with. **Seam:** Monition owns sampler + priority order + `retro` provenance; §G1
+owns cadence, budget, consent. **Rail:** retro is asymmetric training supervision only —
+the held-out relevance set stays live-only; retraining on retro is deferred until volume
+accrues. Unblocked by the Monition dogfood (excerpts rich enough to rate). Call + why:
+`docs/decisions/2026-07-05-housekeep-retro-rating-supply.md`.
 
 ### Active (2026-07-03) — Phase 2: machinery-integration eval canary (layer-1)
 

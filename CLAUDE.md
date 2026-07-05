@@ -50,14 +50,18 @@ use that machinery or improve it.
   `status: decided|superseded` (linted) so retirement is visible at the file, not just in a
   registry. `docs/DESIGN.md` is CMS's live-verdict registry — consult it for *which* call
   currently stands.
-- **Mirror-back sweep.** At the start of a session here (or on request), scan downstream
-  forks/projects for queued upstream candidates (each appends to its own
-  `handoffs/upstream-candidates.md`) and propose them through the consent gate; a landed
-  candidate is removed from its downstream queue in the same pass. The queue is for
-  **teaching-surface proposals only** — changes to `method/`, skills, `starter/`, or the
-  linter. A trigger-shaped lesson never queues: it goes straight into the shared Monition
-  hub at mine time (`reach: general`) and is already live everywhere. (Where "downstream"
-  lives is environment-specific — e.g. sibling repos under your projects directory.)
+- **Mirror-back sweep.** At the start of a session here (or on request), read the shared
+  upstream-candidates queue and propose each candidate through the consent gate; a landed
+  candidate is struck from the queue in the same pass. **Canonical queue location** (all
+  producers and consumers resolve it this way, so a candidate can't be written to one place
+  and swept from another): `$CMS_LANDING_ZONE/handoffs/upstream-candidates.md` when a
+  landing zone is set — every fork on the shared hub appends there, so one read surfaces
+  *all* forks' candidates — else the fork's own `handoffs/upstream-candidates.md` (a
+  standalone forker with no hub). Producers are `/codify` and a fork's `/mine-session`;
+  consumers are this sweep and `/housekeep` §E. The queue is for **teaching-surface
+  proposals only** — changes to `method/`, skills, `starter/`, or the linter. A
+  trigger-shaped lesson never queues: it goes straight into the shared Monition hub at mine
+  time (`reach: general`) and is already live everywhere.
 - **Rate what fires.** When an injected takeaway helped or was noise, say so:
   `monition rate <firing-id> helpful|noise`. Sparse honest labels beat dense dutiful ones
   — this is the eval data the firing engine will train against.

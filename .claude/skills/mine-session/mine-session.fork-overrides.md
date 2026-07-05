@@ -10,8 +10,11 @@ renders this file (its own skill uses the `forkgen:strip` block instead).
 ## swap step6
 
 6. **Routing a domain-free lesson — queue it upstream.** A transferable lesson (one
-   that survives domain-stripping) is queued to `handoffs/upstream-candidates.md` for
-   the mirror-back sweep that pulls it up to the shared machinery; a lesson that only
+   that survives domain-stripping) is queued to the shared upstream-candidates queue
+   (`$CMS_LANDING_ZONE/handoffs/upstream-candidates.md` when a landing zone is set — the
+   same place `/codify` and the mirror-back sweep resolve — else this repo's
+   `handoffs/upstream-candidates.md`) for the sweep that pulls it up to the shared
+   machinery; a lesson that only
    applies to this repo stays a local row (`--reach project`, the default). A row meant
    to fire across every repo, not just where authored, is `--reach general`. Under
    the single-hub store that reach choice IS the promotion for row-shaped lessons —

@@ -143,17 +143,89 @@ git worktree list 2>/dev/null              # everything currently registered
 
 ### E — Queued upstream-candidates
 
+Read the **canonical shared queue** (CLAUDE.md's mirror-back rule): the landing-zone hub
+when set — every fork appends there, so one read surfaces *all* forks' open candidates —
+else this repo's own. Count only **open** candidates (dated `YYYY-MM-DD |` lines), not the
+struck-provenance comment blocks a resolved sweep leaves behind:
+
 ```bash
-f="$(git rev-parse --show-toplevel 2>/dev/null)/handoffs/upstream-candidates.md"
-[ -f "$f" ] && grep -c '^' "$f"
+q="${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs/upstream-candidates.md}"
+[ -n "$q" ] || q="$(git rev-parse --show-toplevel 2>/dev/null)/handoffs/upstream-candidates.md"
+[ -f "$q" ] && grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} \|' "$q"
 ```
 
-**Report-only.** Whether a queued candidate has already landed upstream can't be
-determined locally, so surface only that the queue exists and roughly how full it is:
-"N lines queued in upstream-candidates.md — mirror-back may be due." Resolving it is the
-mirror-back sweep's job, not this skill's.
+**Report-only.** A non-zero count means teaching-surface proposals are waiting: surface
+"N open upstream-candidate(s) queued — mirror-back due" (on a shared hub these span every
+fork, which is the whole point — the cross-fork view a per-repo scan used to miss).
+Resolving them — proposing each through the consent gate and striking the landed ones — is
+the mirror-back sweep's job, not this skill's.
 
-### G — Monition rows due for audit
+### G — Monition store: rate the backlog, then audit rows
+
+Two clauses run in order. **G1** supplies retro ratings over the traffic head; **G2**
+acts on the accumulated ratings to retire or widen rows. G2's `noise`/silence signals are
+starved without a supply of ratings, so the supply pass comes first. Skip the whole
+section silently if `monition` isn't installed or no store is joined.
+
+#### G1 — retro rating supply (weekly)
+
+The retro analog of mine-session's live rating pass (`method/takeaway-store.md` §Rating):
+an evidence-gated LLM pass that produces `retro` relevance labels from stored firing
+excerpts, feeding G2 and the fire/suppress gate the eval data the live pass alone can't
+keep up with. The store owns the sampler, the priority order, and the hardwired `retro`
+provenance; this clause owns only **cadence, budget, and consent**.
+
+Self-gate on a weekly cadence — invoke every run, let the stamp decide whether it is due:
+
+```bash
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"; stamp="$d/monition-retro-rating.last"
+out=/tmp/retro-backlog.jsonl; rm -f "$out"                 # never re-rate a stale export
+if command -v monition >/dev/null 2>&1 && \
+   { [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -7 2>/dev/null)" ]; }; then
+  monition export-firings --rows-by unrated-priority --sample-per-row 8 > "$out" 2>/dev/null
+fi
+[ -s "$out" ] || :   # empty/absent → not due, or nothing unrated → skip G1 silently
+```
+
+When `$out` has rows, run the pass:
+
+- **Budget** — ~30–50 firings across the highest-`rating_priority` rows (the sampler
+  orders them head-not-tail; you own only how many). Raise `--sample-per-row` toward 8–10
+  for rows near the fire/suppress boundary, where a small sample misjudges a
+  borderline-helpful row.
+- **Rate — evidence-gated, exactly as the live pass.** For each record decide
+  `helpful|noise` from its `situation` excerpt + `one_liner` alone — this is retro, you
+  did not live the firing, so judge **relevance**, not utility. Cite the excerpt evidence
+  in one line; set `outcome: null` to abstain on anything the excerpt can't support. **No
+  evidence → abstain**, and surface the abstention rate — a high one means the excerpts
+  are too thin to rate and the store's excerpt capture (not this pass) is what needs
+  widening. Rate under the ambient model the sweep already runs; name no model — a
+  hardcoded one only rots, and inheriting it keeps retro and live labels one labeler.
+- **Consent — one batch, lighter than rows.** Present the proposed labels as a single
+  accept with per-line veto — a rating is reversible eval data, not durable governance, so
+  it earns the same cheap gate mine-session's rating pass uses.
+- **Apply + stamp** — on accept:
+
+  ```bash
+  monition rate --from-export "$out"    # provenance auto-retro; already-rated skipped; unknown id fails loud
+  monition commit -m "housekeep: retro rating backlog pass [rated_by: <the model id you are running under>]" 2>/dev/null
+  mkdir -p "$d" && date -Is > "$stamp"
+  ```
+
+  Stamp the **ambient model you ran under** into that commit message (`[rated_by:
+  <model-id>]`). The labeler model is recorded nowhere else — not on the firing rows (their
+  `model` is the *fire-time* model, not the rater) — so this commit line is the durable
+  provenance of *which* model produced these retro labels. It records the runtime model
+  without pinning one in this doc, and is the deliberate substitute for a `rated_by_model`
+  schema column (`docs/decisions/2026-07-05-housekeep-retro-rating-supply.md`).
+
+**Seam guardrail.** G1 produces `retro` labels and nothing else — it must never touch the
+fire/suppress gate or its held-out test set. Retro is asymmetric *training* supervision
+(the rater saw only the prompt, so it measures relevance, not lived utility); the
+relevance test set stays **live-only**, and retraining the gate on retro is deferred until
+volume accrues under an evidenced weighting scheme.
+
+#### G2 — rows due for audit
 
 The audit cadence in `method/takeaway-store.md`: noise-heavy rows want a narrower
 trigger or retirement; rows that never fire want a wider spec or folding into a doc.

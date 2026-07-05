@@ -120,8 +120,10 @@ Run only the checks whose surface was touched.
 
 **Mirror-back**
 - If this edit was made in a **downstream fork** and is a teaching-surface change
-  (`method/`, skills, `starter/`, linter), it belongs in that fork's
-  `handoffs/upstream-candidates.md`. In the CMS upstream itself → N/A. A trigger-shaped
+  (`method/`, skills, `starter/`, linter), it belongs in the shared upstream-candidates
+  queue — the landing-zone hub when set, else the fork's own `handoffs/upstream-candidates.md`
+  (the canonical location in CLAUDE.md's mirror-back rule). In the CMS upstream itself →
+  N/A. A trigger-shaped
   *lesson* never queues here — it goes straight to the shared Monition hub (`reach:
   general`) and is already live everywhere.
 
