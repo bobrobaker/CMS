@@ -79,19 +79,28 @@ edited and append anything deferred here, with enough locus to act on it cold.
 Real, scoped concerns that need a decision from the user before they can be drafted
 into a roadmap phase or acted on. Each carries the context that justified surfacing it.
 
-- [ ] **Firing-noise plan, remaining steps** (monition). Approved 2026-07-02; the
-  boilerplate gate shipped (see monition
-  `docs/decisions/2026-07-02-boilerplate-prompt-gate.md`), and top-firer-first rating
-  already existed (`export-firings --order-by priority`, Phase 7 / d65e9dc).
-  Corrections after reading monition's own road.md (2026-07-02): the latency item is
-  **already done** — Phase 8 (hook hot-path) exited 2026-07-02 with warm prompt-hook
-  ~431ms / fire-hook ~52ms (the audit's 0.90s was measured pre-B03); struck. The
-  `SEMANTIC_TOP_K` / 0.6-threshold revisit is **owned by Phase 7 B03** (per-row
-  `sem_threshold`, `tune` as actuator, store v8) — don't propose it as new work; and
-  batch noise-attribution (the t91–t98 class) is **Phase 7 B04**. Remaining here:
-  only the post-filter re-measurement against the corrected 43.6% baseline.
-  Context: firings rose 160 → 1,621/day over 2 weeks; weekly rated fraction fell
-  28.8% → 7.5% → 7.0%.
+- [x] **Firing-noise plan, remaining steps** (monition) — **closed 2026-07-05**: the
+  last remaining step (post-filter re-measurement) ran as monition checkpoint t216
+  (row retired). Result: gate stands unsoftened — volume back to the ~350–650/day
+  late-June range from the 1,621/day peak, task-notification leak 0, weekly rated
+  fraction recovered 7.0% → 17.2% → 24.2%. Note: the 43.6% noise-saved baseline is
+  **not comparable post-gate** (the gate changed the decision population; report now
+  reads 37.4% by composition, not regression). Full numbers + caveat: monition
+  `docs/decisions/2026-07-02-boilerplate-prompt-gate.md` §Update 2026-07-05.
+  (History: approved 2026-07-02; gate shipped same day; top-firer-first rating
+  already existed (`export-firings --order-by priority`, Phase 7 / d65e9dc); latency
+  item done in Phase 8; `SEMANTIC_TOP_K`/threshold revisit owned by Phase 7 B03;
+  batch noise-attribution by Phase 7 B04.)
+- [ ] **mine-session runs `eval-session` on the authoring session's own transcript**
+  (surfaced by monition's t224 re-measure, 2026-07-05). Monition row t169 warns
+  exactly against this (the authoring session is a false-FN source — it *discusses*
+  the rows it mined, so signature substrings match mentions, not acts), yet the
+  mine-session skill's own step invoked `monition eval-session --transcript <own
+  session>` (observed live in session e93221a7, fathom, 2026-07-04). Either the
+  skill step is wrong (should target *other* sessions' transcripts) or t169 is
+  over-strict and should be amended — reconcile, don't leave the skill and the row
+  contradicting. CMS owns mine-session; evidence pointer: monition B05
+  `Updates` 2026-07-05 (the t169 LOSS entry).
 - [x] **Housekeep cadence** — decided 2026-07-02: morning `/housekeep` as the anchor
   habit (concurrency verified safe: auto-reap is limited to two information-preserving
   mechanical classes; everything else proposes). `/housekeep` now stamps
