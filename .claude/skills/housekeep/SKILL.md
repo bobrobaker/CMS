@@ -162,10 +162,11 @@ the mirror-back sweep's job, not this skill's.
 
 ### G — Monition store: rate the backlog, then audit rows
 
-Two clauses run in order. **G1** supplies retro ratings over the traffic head; **G2**
-acts on the accumulated ratings to retire or widen rows. G2's `noise`/silence signals are
-starved without a supply of ratings, so the supply pass comes first. Skip the whole
-section silently if `monition` isn't installed or no store is joined.
+Three clauses run in order. **G1** supplies retro ratings over the traffic head; **G2**
+audits rows on precision (`monition report`); **G3** audits them on measured cost
+(`monition ledger`). G2/G3's `noise`/silence signals are starved without a supply of
+ratings, so the supply pass comes first. Skip the whole section silently if `monition`
+isn't installed or no store is joined.
 
 #### G1 — retro rating supply (weekly)
 
@@ -254,6 +255,39 @@ From its table, surface as **propose** only the clear cases:
 Every row action is a consented mutation (`monition retire`, `monition set-trigger`,
 `monition calibrate --apply`) — propose, never apply. Skip the category silently if
 `monition` isn't installed or no store is joined.
+
+#### G3 — value-ledger cost pass (the cost side of the audit)
+
+G2's `monition report` ranks rows by precision; it says nothing about **how much** a
+low-precision row costs. `monition ledger --top 5` adds the measured token-cost dimension
+and pre-computes the retire/tighten shortlist: its `CANDIDATE` flag fires on
+`net ≥ 300 AND prec < 0.50 AND rated ≥ 3` — a row that is both expensive and
+low-precision. The ledger is **advisory and read-only** (it feeds no automated decision);
+skip silently if `monition` isn't installed or no store is joined.
+
+```bash
+monition ledger --top 5 2>/dev/null
+```
+
+Surface the flagged rows as **propose** for a human keep / retire / tighten call — never
+act; every row mutation is consented (`monition retire`, `monition set-trigger`), exactly
+as G2. Two disciplines gate the reading:
+
+- **Batch-noise skepticism.** A high noise% is a retire signal only if the noise is the
+  *row's* fault. A row whose noise is mostly batch-borne — one broad session-opening prompt
+  firing a whole dump of rows, none of which applied (the batch-noise discount) — earns
+  **"leave + note"**, not retirement: that dilution is the batch's, and the row may still be
+  precise on its genuine trigger. Discount before you propose.
+- **Keep-verdict → signature hook (targeted only).** A **KEEP** on a row despite high
+  measured cost is a load-bearing claim — "this row earns its tokens." Make the claim
+  monitored rather than merely asserted: **prompt** (never mandate) authoring a violation
+  signature for *that* row so the recall sweep can catch the failure it warns about actually
+  happening —
+  `monition set-signature <id> '{"kind": "transcript_regex", "pattern": "<the failure event>"}'`.
+  Same test as a mine-time signature (`method/takeaway-store.md` §Rating): only where the
+  failure is a machine-detectable transcript event, and probe the failure itself, never the
+  topic (a topic-shaped pattern self-matches). Most keeps won't qualify — under-match or
+  skip; it's a targeted prompt on the row you chose to keep, not a blanket sweep.
 
 ### H — Global skill-farm drift
 

@@ -33,3 +33,16 @@ stop there and ask.
    foreign is present (a concurrent session's artifacts or stray untracked files
    sweep in silently). Push if the repo's workflow expects it. Propose a message;
    include anything steps 1–2 wrote, so the session archive lands in the commit.
+
+4. **Anchor** — record a replay anchor for the commit just made, so the session→anchor
+   join exists for later causal re-grading of this session's firings (rationale:
+   `docs/decisions/2026-07-07-cms-side-monition-value-audit-carries.md`). Guarded and
+   **fail-open** — runs only when `monition` is on PATH and the repo is monition-wired, and
+   never blocks close-out:
+   ```bash
+   if command -v monition >/dev/null 2>&1 && { [ -n "${MONITION_STORE:-}" ] || \
+      [ -d "$(git rev-parse --show-toplevel 2>/dev/null)/monition" ]; }; then
+     monition snapshot --session "${CLAUDE_CODE_SESSION_ID:-}" >/dev/null 2>&1 || true
+   fi
+   ```
+   Skip silently otherwise (not installed, or no store joined).

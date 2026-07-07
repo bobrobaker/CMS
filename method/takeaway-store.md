@@ -139,10 +139,12 @@ one pollutes the signal.
 
 Periodically (audit cadence): rows with many `noise` ratings get a narrower
 `trigger_spec` or retirement; rows that never fire get their spec widened or fold into a
-doc. `monition report` computes this read per row (fires / helpful / noise / precision)
-and `/housekeep` surfaces the clear candidates on its sweep; the rating pass is what
-feeds both. Acting on a candidate stays a consented row mutation (`monition retire`,
-`monition set-trigger`, `monition calibrate --apply`).
+doc. `monition report` computes the precision read per row (fires / helpful / noise /
+precision); `monition ledger` adds the measured token-cost read and flags rows that are
+both expensive and low-precision. `/housekeep` surfaces the clear candidates from both on
+its sweep, discounting batch-borne noise; the rating pass is what feeds them. Acting on a
+candidate stays a consented row mutation (`monition retire`, `monition set-trigger`,
+`monition calibrate --apply`).
 
 ## Dolt mechanics
 
