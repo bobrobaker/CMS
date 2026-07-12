@@ -394,6 +394,63 @@ fi
   wiring/config regression) or the harness itself errored. Surface its output verbatim so the
   failing task is named. This is a health check, not a reap — nothing is deleted.
 
+### L — Fork machinery skew (weekly, from the CMS clone)
+
+Managed machinery reaches forks by two channels that do NOT compose into one "is this fork
+current?" signal, and neither is surfaced on any cadence: `bootstrap --update` re-vendors
+`MANAGED_TOOLS` (recorded in the fork's `tools/.cms-version`) plus plain skills; `monition
+sync` materializes the monition-owned skills — those with a `*.fork-overrides.md` marker,
+e.g. `mine-session` — which `.cms-version` does **not** stamp. So a fork silently running a
+stale `mine-session` (the 2026-07-11 case: 4 forks on an outdated rating pass) is invisible
+to `bootstrap --doctor`, to the commit-time stamp drift-check (tools-only, fork-local), and
+to categories H/K. This category is that missing cadence — it runs only from the CMS clone
+(the sole holder of `tools/.cms-manifest`), weekly, propose-only:
+
+```bash
+root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -n "$root" ] && [ -f "$root/tools/.cms-manifest" ]; then      # gate: canonical CMS clone only
+  stamp="${XDG_STATE_HOME:-$HOME/.local/state}/cms/fork-skew.last"
+  if [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -7 2>/dev/null)" ]; then   # weekly self-gate
+    man="$root/tools/.cms-manifest"
+    for f in "${CMS_FORKS_ROOT:-$(dirname "$root")}"/*/; do       # forks = siblings of the CMS clone; override root with CMS_FORKS_ROOT
+      f="${f%/}"; name="$(basename "$f")"
+      [ -f "$f/tools/.cms-manifest" ] && continue                 # skip canonical clones (incl. self)
+      ts=0; sk=0
+      # tools: fork stamp vs canonical manifest — same string compare as check_stamp_drift
+      [ -f "$f/tools/.cms-version" ] && ! diff -q "$f/tools/.cms-version" "$man" >/dev/null 2>&1 && ts=1
+      # skills/docs: monition-owned drift via read-only dry-run (writes nothing); needs CLI + a monition-wired fork
+      if command -v monition >/dev/null 2>&1 && [ -f "$f/.claude/skills/mine-session/SKILL.md" ] \
+         && monition instrument --root "$f" --dry-run 2>/dev/null \
+            | grep -qE '^would (upgrade|install)|^WARN: (skill|doc)'; then sk=1; fi
+      if [ "$ts" = 1 ]; then
+        echo "SKEW $name — tools$( [ "$sk" = 1 ] && printf '+skills' ) → cd $root && ./bootstrap.sh --update $f"
+      elif [ "$sk" = 1 ]; then
+        echo "SKEW $name — skills → monition sync --root $f"
+      fi
+    done
+    mkdir -p "$(dirname "$stamp")" && date -Is > "$stamp" 2>/dev/null || true
+  fi
+fi
+```
+
+- **No `tools/.cms-manifest`** (running from a fork, not the CMS clone) → skip silently; a
+  fork must never fleet-scan its siblings.
+- **Not due** (< 7d since last run) → silent.
+- **`monition` absent, or a fork with neither `.cms-version` nor a monition skill** → that
+  fork self-gates out (honest dormancy — it never adopted the machinery).
+- **Any `SKEW` line** → **propose** running the printed command. `bootstrap --update` is
+  preferred whenever tools drift (it re-vendors tools AND invokes `monition sync`); bare
+  `monition sync` only for skills-only drift. Propose-only — the fix mutates ANOTHER repo's
+  working tree, never auto-run. Caveat when proposing `--update`: a managed tool that also
+  carries fork-local config in its body (e.g. `craft_reminder.py`'s POINTER) is re-vendored
+  to the CMS default — have the user verify fork-local customizations survived after running.
+- **Why the compare is class-specific** (the traps): a monition-owned skill is a
+  domain-stripped regen variant whose body legitimately differs from CMS's authoring source,
+  so a raw `diff fork CMS` false-positives — the only truthful skill signal is `monition
+  instrument --dry-run` (`_managed_state`). Version strings aren't currency (two forks can
+  share `v0.5.0` with different hashes). And `.cms-version` clean ≠ skills current: it stamps
+  only `MANAGED_TOOLS`.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are
