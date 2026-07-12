@@ -118,6 +118,10 @@ hook, and the mine-session routing path.
 - Weekly cron; alert when any task fails **twice consecutively** (debounce single flakes).
 - **Scope honesty:** integration canary — catches wiring/config regressions, not vendor-model
   regressions.
+- **Not fleet currency:** this canary asserts a *single scratch fork's* wiring, not whether
+  *existing* forks are current. Fleet machinery skew (the 2026-07-11 incident — forks running
+  stale tools/skills) is detected separately by `/housekeep §L "Fork machinery skew"` (added
+  2026-07-12). Don't read a green canary as "the fleet is in sync."
 - **Cost control:** headless `claude -p` loads a ~21k-token prefix; strip with `--tools ""` +
   `--setting-sources project,local` (~150 tokens) — monition t107.
 

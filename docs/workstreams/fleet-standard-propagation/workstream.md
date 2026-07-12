@@ -3,6 +3,19 @@
 Progress: **WS2 CLOSED (2026-06-20).** All buckets done: B01,B02,B04,B07 (propagation + arch-doctype) + B03 (backfill scaffold) + B05 (arch-doc freshness check + mirror-parity guard) + B06 (dogfood DESIGN.md + fork rollout handoff). B03/B05/B06 were each built, code-reviewed, and confer-reviewed with the brain2 architect to convergence; every A/B concern implemented + re-validated, C/D parks logged in bucket Updates. Fork rollout queued in the landing zone (opt-in).
 Blocked: none
 
+**[2026-07-12] POST-CLOSE REALITY CHECK:** WS2 shipped the propagation *mechanism* (opt-in
+re-vendor + fork-local tools-stamp drift-WARN), NOT a fleet-in-sync state. On 2026-07-11 the
+fleet was found drifted (4 forks on a stale `mine-session`; 8 behind on tools and/or skills).
+Two gaps WS2 documented as out-of-scope are the cause: (1) the stamp covers `MANAGED_TOOLS`
+only, not skills (see `docs/contracts/shared-machinery-propagation.md` §"Version stamp"; B01
+Updates) — the stale skill was invisible to the drift-WARN; (2) that drift-WARN is fork-local +
+self-gating (B02), never a *fleet* scan. Both are now addressed by `/housekeep §L "Fork machinery
+skew"` (added 2026-07-12, commit a05e43e): it reuses B02's tools-stamp compare and adds skill
+drift (`monition instrument --dry-run`) + a central fleet vantage. §L does NOT duplicate B05's
+mirror-parity guard (that guards `cms_lint`↔`lint_skeleton`, a different surface). "Fork rollout
+queued (opt-in)" remained an invitation, not an achieved sync — the 2026-07-12 fleet fix brought
+all forks current.
+
 ## Objective
 
 Close the gap WS1 left: a CMS-owned check ships to *new* forks at bootstrap but never reaches an

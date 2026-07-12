@@ -68,6 +68,11 @@ edited and append anything deferred here, with enough locus to act on it cold.
   owner (likely: cms update must skip forkgen-swapped skills, or monition sync must
   re-splice after update). t33's drift class exactly. Also audit the other four forks'
   mine-session for the same clobber.
+  **[2026-07-12]** This class fired live: the 2026-07-11 fleet drift (stale `mine-session`
+  across forks) is exactly this clobber. Detection now exists (`/housekeep §L`, committed
+  a05e43e); the *ownership* decision (cms update skips forkgen-swapped skills, or monition sync
+  re-splices after `--update`) is STILL OPEN — §L surfaces the skew but not which variant is
+  correct. The "audit the other four forks" ask was discharged by the 2026-07-12 fleet fix.
 - [ ] Fractional-factorial eval-helper idea (handoff deleted 2026-07-02, was 16d
   stale with nothing built): a runnable helper measuring how well a CLAUDE.md line
   reduces its target failure, via fractional-factorial design + stats. Three design

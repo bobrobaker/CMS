@@ -136,6 +136,14 @@ check (this `DESIGN.md` is its first conforming instance — `doctype: architect
 mirror-parity guard keeping the vendored linter honest. Fork rollout is queued (opt-in) in the
 landing zone. The design call below is retained as the standing rationale.
 
+> **[2026-07-12 UPDATE]** The mechanism landed; the *fleet* was not thereby made current. Drift
+> found 2026-07-11 (stale skills across forks) traces to two in-scope-documented limits: skills
+> are unstamped (see `docs/contracts/shared-machinery-propagation.md` §"Version stamp") and the
+> drift-WARN is fork-local/self-gating — neither is a fleet scan. The central, skill-aware
+> detection cadence is `/housekeep §L` (added 2026-07-12, commit a05e43e), which *extends* — does
+> not duplicate — the mirror-parity guard. The 2026-07-12 fleet fix brought all forks current.
+> See `docs/workstreams/fleet-standard-propagation/workstream.md` Progress + 2026-07-12 note.
+
 WS1 made decision-doc retirement machine-enforced and legible at the file, but shipped the
 check by **verbatim duplication** into each fork's tools/lint.py at bootstrap time. Forks
 extend lint.py locally and there is no downstream sync, so a later CMS opinion change never

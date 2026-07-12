@@ -51,3 +51,12 @@ it does not itself reap rows — the audit cadence is the separate read that doe
 **Cadence is recommended, not wired.** The skill is built silent-when-clean so it's safe to
 schedule daily, but actually scheduling it (via `/schedule` or a hook) is left to the user —
 outward-facing, their call.
+
+> **[2026-07-12 UPDATE]** Scope has grown past A–F: `SKILL.md` now runs categories through at
+> least **L** (H/J retention + doc-currency probes; K integration canary; **L "Fork machinery
+> skew"**, added 2026-07-12, commit a05e43e). §L is a weekly, CMS-clone-gated, propose-only
+> fleet-skew scan prompted by the 2026-07-11 fork drift; it honors this decision's
+> auto-reap-is-two-mechanical-classes-only rule (proposes, never mutates another repo). A
+> standalone decision record for §L is owed once it's exercised in a real scheduled run; until
+> then it's tracked in `docs/debt.md` (the forkgen-collision row), not enshrined as a road.md
+> phase.
