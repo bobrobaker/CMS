@@ -23,7 +23,10 @@ You are mining this session for takeaways. The store's semantics live in
    session still in context — LLM-auto, evidence-gated, bulk-confirmed.
    - **The three-bucket verdict, at a glance** (the dense rules below are these three —
      read this first so they aren't mis-skimmed):
-     - **`helpful`** — the fire *applied and shaped the action* you took.
+     - **`helpful`** — the fire *applied and shaped the action* you took — and it
+       fired **before** that action (check `fired_at` against the action's time). A
+       post-hoc fire proves nothing causally: matched-but-already-acted is `unrated`,
+       never `helpful`.
      - **`noise`** — the fire *did not apply to this context*; the dilution is the cost, so
        this is the label even for a precise trigger that over-fired. "No action-changing
        evidence" is **not** a skip reason — an irrelevant fire is `noise`, not unrated.
@@ -35,7 +38,13 @@ You are mining this session for takeaways. The store's semantics live in
      `--order-by priority` is the head-not-tail metric — `rating_priority` = traffic ×
      distance-to-fire/suppress-boundary, cold-start rows rank high; monition owns the
      math, you only consume the order. If `$CLAUDE_CODE_SESSION_ID` is unset, scope with
-     `--since <today>` instead. **Fail open:** if the `monition` CLI or live store is
+     `--since <today>` instead. **Background-session caveat:** in a background job the
+     firing engine may tag firings with the *runtime* session id, not
+     `$CLAUDE_CODE_SESSION_ID` (which names the job + transcript) — so `--session
+     "$CLAUDE_CODE_SESSION_ID"` returns **empty** and the eval pass silently sees "no
+     firings." If a `--session` scope comes back empty on a session that clearly did work,
+     re-pull with `--since <today>` and read the `session_id` field off the rows to find
+     the real id, then filter on it. **Fail open:** if the `monition` CLI or live store is
      absent, skip the pass entirely.
    - **Run the recall sweep (the FN side of the eval).** Ratings can only grade what
      fired — nothing fires on a missed trigger, so recall needs its own probe:
@@ -75,7 +84,8 @@ You are mining this session for takeaways. The store's semantics live in
      individually-evidenced labels. The distinction that still matters is *applied vs.
      didn't apply*, not broad vs. precise: a row that fired on a genuinely matching
      moment where you already complied is a true positive, not noise — leave it unrated
-     (or `helpful` if it visibly shaped the action).
+     (`helpful` only if it fired *before* the action and visibly shaped it — the
+     causal-ordering test).
    - **Propose a rating ONLY where the session evidences it**, with a mandatory one-line
      citation of *what in this session* shows it. **No evidence → no rating** — never pad
      to hit coverage; an unsupported `helpful` is directional bias in the eval set, worse
