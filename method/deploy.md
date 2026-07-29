@@ -126,8 +126,12 @@ the hooks read it in-session even when the shell env is bare), then the shell en
 against the resolved store, not file existence — a present file with a broken CLI or schema
 must not PASS. It also checks the interpreter (`python3` ≥ 3.10), the monition
 version/capability handshake, and the hooks' designed silent-failure sink
-(`~/.local/state/monition/hook-errors.log`): the hooks fail open and append stderr there, so a
-growing log means the loop is degrading with no in-session symptom.
+(`~/.local/state/monition/hook-errors.log`): the hooks fail open and append stderr there, so
+that log is the only evidence a hook ever failed. Growth alone means nothing — most of the
+file is routine per-prompt accounting — so the check **ages** each failure rather than
+counting them, and reports only ones recent enough to be live. An append-only log answers
+"did this ever break", which latches true forever; the question worth gating a deploy on is
+"is it breaking now".
 
 ## Triage classes for doctor failures
 

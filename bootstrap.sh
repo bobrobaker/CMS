@@ -691,22 +691,27 @@ print(cfg.get("env", {}).get("MONITION_STORE", ""), end="")' "$root/.claude/sett
   fi
 
   # The hooks' designed silent-failure sink: they fail open and append stderr here.
-  # Most lines are routine info (e.g. monition's "[capped] N semantic hit(s)..." note),
-  # not failures — only warn on lines that actually look like an error (a raw traceback
-  # from an uncaught exception, or one of monition's own "[xxx-error]" tags).
+  # Most lines are routine accounting, not failures, and the file is append-only — so
+  # "does it contain an error" latches true forever after the first bad day and the
+  # check decays into a permanent false alarm. tools/hook_error_scan.py answers the
+  # question that stays useful ("is a hook failing NOW") by ageing each event; see its
+  # module docstring for how undated raw-stderr lines get bracketed.
   local herr="${XDG_STATE_HOME:-$HOME/.local/state}/monition/hook-errors.log"
-  if [ -s "$herr" ]; then
-    local errlines
-    errlines="$(grep -Ec 'Traceback \(most recent call last\)|[Ee]xception|[Ee]rror' "$herr" 2>/dev/null || true)"
-    if [ "${errlines:-0}" -gt 0 ]; then
-      _chk WARN hook-errors "$errlines error-like line(s) of $(wc -c < "$herr" | tr -d ' ') bytes, last write $(date -r "$herr" '+%Y-%m-%d %H:%M' 2>/dev/null || echo '?') — hooks are failing; read $herr"
-    else
-      _chk PASS hook-errors "present, informational only ($(wc -c < "$herr" | tr -d ' ') bytes, no error-like lines)"
-    fi
-  elif [ -f "$herr" ]; then
-    _chk PASS hook-errors "present and empty ($herr)"
+  local hscan="$SELF_DIR/tools/hook_error_scan.py"
+  if [ ! -f "$hscan" ]; then
+    _chk WARN hook-errors "cannot assess $herr — $hscan is missing from this CMS clone"
   else
-    _chk PASS hook-errors "absent (no recorded hook failures)"
+    # `|| hrc=$?` (not a bare `; hrc=$?`) — under `set -e` a nonzero assignment aborts
+    # the whole doctor, and this probe exits nonzero by design whenever it has news.
+    local hout hrc=0
+    hout="$(python3 "$hscan" --log "$herr" 2>&1)" || hrc=$?
+    case "$hrc" in
+      # Fail loud on a broken probe: a health check that goes quiet when it cannot
+      # run is the same defect this check was rewritten to remove.
+      0) _chk PASS hook-errors "$hout" ;;
+      1) _chk WARN hook-errors "$hout" ;;
+      *) _chk WARN hook-errors "hook-error scan failed to run (exit $hrc): $hout" ;;
+    esac
   fi
 
   if [ -f "$root/.mcp.json" ]; then _chk PASS mcp-json "present"; else

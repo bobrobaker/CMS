@@ -19,6 +19,9 @@ python3 "$ROOT/tools/test_eval_canary.py" >/dev/null || { python3 "$ROOT/tools/t
 # Correctness guard for the two doc-currency probes (two-headed decision doc; gated-vs-shipped),
 # including the negatives (deliberate partial-supersession, genuinely-unbuilt feature).
 python3 "$ROOT/tools/test_doc_currency.py" >/dev/null || { python3 "$ROOT/tools/test_doc_currency.py"; exit 1; }
+# Age classification for the hook state-log health read — guards the forward-bracket
+# (a backward one reports an ongoing outage as healthy). See tools/test_hook_error_scan.py.
+python3 "$ROOT/tools/test_hook_error_scan.py" >/dev/null || { python3 "$ROOT/tools/test_hook_error_scan.py"; exit 1; }
 # Keep the canonical managed-tools manifest fresh: bash is the sole hash producer, and the
 # fork drift-check reads this committed file (never recomputes). See method/tooling.md.
 # Fail loud, not silently: a refresh error must not ship a stale manifest (B02 trusts it).

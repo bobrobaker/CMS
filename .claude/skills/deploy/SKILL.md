@@ -44,8 +44,11 @@ the interactive steps. Everything it calls is idempotent — safe to re-run.
      an ambiguous hub; a foreign `.githooks/pre-commit` or `core.hooksPath` that bootstrap refused
      to overwrite (merging their hooks is theirs to own, or `--force-hookspath` for the path). A
      `FAIL` breaks the takeaway/MCP loop and must be resolved; a `WARN` is degraded-but-working —
-     name it and let them choose. A `hook-errors` WARN means the hooks have been **failing
-     silently** — read the named log before declaring the deploy healthy.
+     name it and let them choose. A `hook-errors` WARN is **live, not historical** — the check
+     ages what it finds, so it means one of two things and they need different responses:
+     failures recent enough to still be happening (read the named log before declaring the
+     deploy healthy), or a log it cannot age at all, which means the takeaway engine has never
+     written to it successfully — suspect an install that is dead at import.
 
 5. **Walk the interactive residue.** The steps a script must not do unattended: confirm the MCP
    **trust** decision before approving; offer (don't assume) the PATH edit; for an arbitrary repo
