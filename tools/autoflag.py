@@ -123,7 +123,23 @@ def main():
     if not text:
         return
 
-    session = str(data.get("session_id", "unknown"))
+    # Key off the harness env var, NOT the payload's `session_id`. The two were
+    # verified equivalent when per-session flag files were introduced
+    # (docs/decisions/2026-06-18-per-session-flags.md), and that premise has since
+    # been falsified: in a RESUMED session the payload carries the *ancestor*
+    # session's id while $CLAUDE_CODE_SESSION_ID holds the live one (measured
+    # 2026-07-31: ~10 of 33 recent sessions on the author's machine). Keying off the
+    # payload files an auto-flag under a dead ancestor id, so /statusline's
+    # per-session count and /mine-session's attribution both point at the wrong
+    # session — the two things per-session files exist to provide. The /flag skill
+    # already uses the env var, so this also makes the two producers agree.
+    #
+    # Deliberately NOT falling back to `Path(transcript).stem`: the payload's
+    # transcript_path is suspected to carry the same ancestor staleness, so that
+    # fallback would reintroduce the bug it is meant to guard. "unknown" is the
+    # honest failure — /mine-session's directory sweep still drains it.
+    session = os.environ.get("CLAUDE_CODE_SESSION_ID") or str(
+        data.get("session_id", "unknown"))
 
     # Layer 1 — regex floor: the unambiguous admitted-error class.
     m = _RX.search(text)

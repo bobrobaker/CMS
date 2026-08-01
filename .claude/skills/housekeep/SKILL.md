@@ -1,6 +1,6 @@
 ---
 name: housekeep
-description: Sweep the system's transient stores for orphaned or stale residue (sessions, flag files, handoffs, confer threads, worktrees, upstream-candidates, takeaway rows, skill-farm drift) — auto-reap the mechanical-and-safe class, propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT a doc/summary-drift audit (that's the broader Tier-3 pass) and NOT a mining/codify pass.
+description: Sweep the system's transient stores for orphaned or stale residue (sessions, flag files, handoffs, confer threads, worktrees, upstream-candidates, takeaway rows, skill-farm drift) — auto-reap the mechanical-and-safe class, propose the rest. Use when the user invokes /housekeep, says "do housekeeping", "tidy up", "check for orphaned/stale things", or as a daily cadence pass. Silent when clean. NOT the doc/summary-drift audit itself (§M only nags its cadence — resolution is /audit-docs) and NOT a mining/codify pass.
 ---
 
 # housekeep
@@ -44,11 +44,27 @@ that clone, resolve it through the skill-farm symlink instead of silently skippi
 ```bash
 root=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -f "$root/archive/backfill.py" ] || root=$(readlink -f ~/.claude/skills/housekeep 2>/dev/null | sed 's|/\.claude/skills/housekeep$||')
-[ -f "$root/archive/backfill.py" ] && python3 "$root/archive/backfill.py" --dry-run 2>/dev/null
+[ -f "$root/archive/backfill.py" ] && python3 "$root/archive/backfill.py" --dry-run 2>/dev/null \
+  | sed -n '/^backfill:/,$p'   # the count + per-project breakdown, not the per-session lines
 ```
 
-If it lists N sessions: **propose** `python3 "$root/archive/backfill.py"` (optionally
-`--days`, `--limit`). Don't run it unprompted — it makes model calls and costs tokens.
+The dry run extracts and filters every candidate before counting, so it takes minutes on
+a wide `--days` window rather than returning instantly — that is the cost of a number
+that matches what would actually be summarised. Let it finish; don't size off a partial.
+
+**Size the run from the `would summarise: N session(s)` line and its per-project
+breakdown — never from the streamed `would summarise: <tag>` lines.** Those stream one
+per session and can run to thousands; piping them through `head`/`tail` yields a number
+that looks like the scope and is not, and the proposal below then quotes it to the user
+as the spend they are approving. (This is not hypothetical: a 2026-07-31 sweep reported
+"26 sessions" off a `tail -30` and ran 164, ~96% of them throwaway scratch/subagent
+transcripts.)
+
+**Propose** `python3 "$root/archive/backfill.py"` (optionally `--days`, `--limit`) and
+**quote the per-project breakdown in the proposal** — the archive earns its keep on real
+project sessions, and a window dominated by `*-scratch` / `tmp` / worktree projects is a
+spend the user should see before approving, not after. Don't run it unprompted: it makes
+one model call per session.
 
 ### B — Orphaned flag files
 
@@ -76,18 +92,35 @@ done 2>/dev/null
 ### C — Over-horizon handoffs
 
 Scan `$CMS_LANDING_ZONE/handoffs/` (if set) and `<repo>/handoffs/`, top level only
-(exclude `archive/`). A handoff has `status: open` + a `created:` date. **Exclude confer
-threads** (`type: confer` frontmatter — those are category D).
+(exclude `archive/`). **Every top-level `.md` is a candidate unless another category
+claims it** — `type: confer` (category D) or `upstream-candidates.md` (category E).
+
+Do *not* gate on `status: open`. `handoff/SKILL.md` defines `open` as the only status and
+*deletion* as the consumption step, so a file bearing any other status — or none — has
+outlived that step and is **more** stale, not exempt. Gating on the one conformant value
+makes the probe blind exactly where the drift is worst: a directory full of unmarked
+residue reports clean.
 
 ```bash
+seen=""
 for base in "${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs}" "$(git rev-parse --show-toplevel 2>/dev/null)/handoffs"; do
   [ -d "$base" ] || continue
+  # the landing zone IS the cwd repo when housekeep runs there — scan each dir once
+  base="$(cd "$base" && pwd -P)"
+  case " $seen " in *" $base "*) continue;; esac
+  seen="$seen $base"
   for f in "$base"/*.md; do
     [ -e "$f" ] || continue
-    grep -qs '^type: confer' "$f" && continue
-    grep -qs '^status: open' "$f" || continue
+    [ "$(basename "$f")" = "upstream-candidates.md" ] && continue   # §E owns the queue
+    grep -qs '^type: confer' "$f" && continue                        # §D owns confer threads
+    st=$(grep -m1 '^status:' "$f" | sed 's/status:[[:space:]]*//')
     cr=$(grep -m1 '^created:' "$f" | sed 's/created:[[:space:]]*//')
-    echo "OPEN $f created=$cr"
+    [ -n "$cr" ] || cr="mtime:$(date -Id -r "$f" 2>/dev/null)"       # no created: → age by mtime
+    case "$st" in
+      "")     echo "UNMARKED $f created=$cr" ;;
+      open)   echo "OPEN     $f created=$cr" ;;
+      *)      echo "OFFSPEC  $f status=$st created=$cr" ;;
+    esac
   done
 done 2>/dev/null
 ```
@@ -98,6 +131,10 @@ so use conservative buckets and let the user resolve:
 
 - `created:` > ~3 days → **propose** review ("carry-forward may have missed its pick-up").
 - `created:` > ~14 days → **propose** as stale regardless of kind.
+- `UNMARKED` / `OFFSPEC` → **propose** regardless of age. These already failed the
+  lifecycle — consumption should have deleted the file — so age is not the signal.
+  Resolve by the same §Lifecycle menu below, reading delete as the default unless the
+  content says otherwise.
 
 Offer the resolutions from `handoff/SKILL.md` §Lifecycle for each, don't pick one —
 delete (work died) / promote to durable doc (became a runbook) / route the work into the
@@ -111,8 +148,12 @@ and archive to `handoffs/archive/` with an `archived:` stamp. A thread open ≳1
 the decision stopped mattering or was made out-of-band.
 
 ```bash
+seen=""
 for base in "${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs}" "$(git rev-parse --show-toplevel 2>/dev/null)/handoffs"; do
   [ -d "$base" ] || continue
+  base="$(cd "$base" && pwd -P)"                                    # same dir twice when
+  case " $seen " in *" $base "*) continue;; esac                    # the landing zone IS
+  seen="$seen $base"                                                # the cwd repo
   for f in "$base"/*.md; do
     [ -e "$f" ] || continue
     grep -qs '^type: confer' "$f" || continue
@@ -155,10 +196,10 @@ q="${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs/upstream-candidates.md}"
 ```
 
 **Report-only.** A non-zero count means teaching-surface proposals are waiting: surface
-"N open upstream-candidate(s) queued — mirror-back due" (on a shared hub these span every
-fork, which is the whole point — the cross-fork view a per-repo scan used to miss).
+"N open upstream-candidate(s) queued — run `/mirror-back`" (on a shared hub these span
+every fork, which is the whole point — the cross-fork view a per-repo scan used to miss).
 Resolving them — proposing each through the consent gate and striking the landed ones — is
-the mirror-back sweep's job, not this skill's.
+`/mirror-back`'s job, not this skill's.
 
 ### G — Monition store: rate the backlog, then audit rows
 
@@ -240,9 +281,25 @@ monition report 2>/dev/null
 From its table, surface as **propose** only the clear cases:
 
 - active rows with ≥3 `noise` and 0 `helpful` ratings → propose a narrower
-  `trigger_spec` or `monition retire`;
-- active rows with 0 firings ever → two-stage: not yet widened → propose widening
-  the spec or folding into a doc; widened in a prior pass (`monition show <id>`
+  `trigger_spec` or `monition retire`. **But read the ratings against the row's
+  spec epoch first**: `monition report`'s counts are lifetime, so a row retargeted
+  last week still shows the noise its *previous* trigger produced. `monition
+  ledger` computes this gate — its `prec*`/`rated*` columns count only firings
+  on/after the last trigger-changing mutation, and a row marked **RETRIGGERED**
+  (mutated, too few rated firings since) needs *evidence*, not another fix.
+  Proposing a tighter spec for a RETRIGGERED row re-proposes a fix that already
+  landed;
+- active rows with 0 firings ever → **first check whether the row is
+  matched-but-suppressed**, then apply the two-stage ladder. A row can trigger
+  normally and still never fire: the relevance cascade cuts the candidate before
+  injection (below the score floor, or over the per-prompt budget). Query the
+  store's `suppressions` table for the row's id. **If it has suppression events the
+  widen/retire ladder does not apply** — widening produces more stray candidates
+  for the floor to cut, adding suppression noise without ever yielding a firing.
+  Report those as their own class: the row lost on *relevance or budget*, not on
+  retrieval, so the lever is the cascade's tuning, not the row's spec.
+  Only for a row with **no** suppressions: not yet widened → propose widening the
+  spec or folding into a doc; widened in a prior pass (`monition show <id>`
   mutation history) and still silent → propose `monition retire`. **Exempt
   rare-hazard rows** (trigger names a rare-but-costly event — force-push,
   destructive migration, credential handling): disuse is not staleness when the
@@ -261,9 +318,14 @@ Every row action is a consented mutation (`monition retire`, `monition set-trigg
 G2's `monition report` ranks rows by precision; it says nothing about **how much** a
 low-precision row costs. `monition ledger --top 5` adds the measured token-cost dimension
 and pre-computes the retire/tighten shortlist: its `CANDIDATE` flag fires on
-`net ≥ 300 AND prec < 0.50 AND rated ≥ 3` — a row that is both expensive and
-low-precision. The ledger is **advisory and read-only** (it feeds no automated decision);
-skip silently if `monition` isn't installed or no store is joined.
+`net ≥ 300 AND prec* < 0.50 AND rated* ≥ 3` — a row that is both expensive and
+low-precision. The starred columns are **spec-epoch gated**: they count only firings
+on/after the row's last trigger-changing mutation, so a retargeted row is judged on the
+spec it carries now rather than its predecessor's. A row marked **RETRIGGERED** was
+mutated but hasn't accrued enough rated firings since — it is never a candidate, and the
+correct action is to let evidence accrue, not to propose another fix. The ledger is
+**advisory and read-only** (it feeds no automated decision); skip silently if `monition`
+isn't installed or no store is joined.
 
 ```bash
 monition ledger --top 5 2>/dev/null
@@ -451,12 +513,84 @@ fi
   share `v0.5.0` with different hashes). And `.cms-version` clean ≠ skills current: it stamps
   only `MANAGED_TOOLS`.
 
+### M — Doc-drift audit due (monthly, repos with governed docs)
+
+The Tier-3 doc-drift slice (summary drift, two-headed decisions, merge candidates,
+always-on leanness) is judgment-heavy and expensive, so it lives in its own skill —
+`/audit-docs` — and this category is only its **cadence nag**, the same
+detection-vs-resolution split as §E → `/mirror-back`. The stamp is keyed per repo
+(the audit is repo-scoped; the state dir is machine-global), written by `/audit-docs`
+on completion. From the canonical clone (the sole holder of `tools/.cms-manifest` —
+same gate as §L) the nag scans **all** sibling governed-docs repos, because a repo
+housekeep is never run from would otherwise never be nagged; anywhere else it checks
+only the cwd repo, unchanged:
+
+```bash
+root="$(git rev-parse --show-toplevel 2>/dev/null)"
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"
+if [ -n "$root" ] && [ -f "$root/tools/.cms-manifest" ]; then      # gate: canonical clone → machine-wide scan
+  scan="$d/doc-audit-scan.last"
+  if [ ! -f "$scan" ] || [ -z "$(find "$scan" -mtime -30 2>/dev/null)" ]; then   # monthly self-gate on the scan itself
+    due=""; seen=""
+    for r in "${CMS_GOVERNED_ROOTS:-$(dirname "$root")}"/*/; do    # governed repos = siblings with docs/decisions/ (incl. self); override root with CMS_GOVERNED_ROOTS
+      r="${r%/}"; name="$(basename "$r")"
+      [ -d "$r/docs/decisions" ] || continue                       # same governed-docs gate as the cwd-only path
+      case " $seen " in *" $name "*)
+        echo "WARN: two scanned repos share basename '$name' — their doc-audit stamp keys collide; one repo's audit masks the other's";;
+      esac
+      seen="$seen $name"
+      s="$d/doc-audit.$name.last"                                  # per-repo stamp, written by /audit-docs on completion
+      if [ ! -f "$s" ] || [ -z "$(find "$s" -mtime -30 2>/dev/null)" ]; then
+        mt=0; [ -f "$s" ] && mt="$(stat -c %Y "$s" 2>/dev/null || echo 0)"
+        due="${due}${mt} ${name}
+"
+      fi
+    done
+    n="$(printf '%s' "$due" | grep -c .)"
+    names="$(printf '%s' "$due" | sort -n | cut -d' ' -f2-)"
+    if [ "$n" -gt 2 ]; then
+      list=""; for x in $names; do list="${list:+$list, }$x"; done
+      echo "doc-drift audit due in $n repos (oldest first): $list — run /audit-docs in each"
+    elif [ "$n" -gt 0 ]; then
+      for x in $names; do echo "doc-drift audit due for $x — run /audit-docs"; done
+    fi
+    { mkdir -p "$d" && date -Is > "$scan"; } 2>/dev/null || true
+  fi
+elif [ -n "$root" ] && [ -d "$root/docs/decisions" ]; then         # not the canonical clone: cwd-only, the original behavior
+  stamp="$d/doc-audit.$(basename "$root").last"
+  if [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -30 2>/dev/null)" ]; then
+    echo "doc-drift audit due for $(basename "$root") — run /audit-docs"
+  fi
+fi
+```
+
+- **No `tools/.cms-manifest`** (a fork, not the canonical clone) → cwd-only check,
+  exactly the pre-scan behavior; a fork never scans its siblings.
+- **No `docs/decisions/`** (not a governed-docs repo) → skip silently — both paths.
+- **Scan stamp fresh** (< 30d since the last machine-wide scan) → silent; within a due
+  scan, the per-repo 30d stamp decides *which* repos are due.
+- **> 2 repos due** → one summary line, oldest stamp first — not one line per repo.
+- **Duplicate basename among scanned roots** → WARN: stamp keys are basename-keyed
+  (matching what `/audit-docs` writes), so a collision would let one repo's fresh stamp
+  silently mask another's staleness.
+- **Due** → **report-only** in all cases: print and stop. Running the audit — verifying
+  claims, proposing strikes through the consent gate — is `/audit-docs`'s job, invoked
+  per repo, not this skill's.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are
 already done — state what was reaped. Proposes are a numbered list the user can accept
 selectively. If nothing fired in any category, the single silent-when-clean line
 instead.
+
+Every proposed line states three things in order: a **short descriptive handle** (2–4
+words of what the thing *is*), **what the probe found**, and **why that is a problem**. A
+bare identifier — a row id, a section letter, a path — names a finding without conveying
+it; the user should not have to run a command to learn what they are being asked to
+decide. If you cannot state the "why" for a finding, treat that as evidence it does not
+clear the proposal bar: move it to report-only or drop it, rather than surfacing an
+identifier and leaving the user to reconstruct the reasoning.
 
 Whatever the outcome — findings or clean — stamp the run so `/eos` can surface
 staleness (its hygiene glance reads this file's mtime):

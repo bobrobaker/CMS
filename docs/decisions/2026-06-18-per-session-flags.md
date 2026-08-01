@@ -10,12 +10,29 @@ status: decided
 > **liveness-scoped** (own session always; other files only if their session is dead).
 > Per-session files and the orphan-safety goal are unchanged; only the drain scope is.
 
+> **Premise REFUTED in part (2026-07-31):** the three-way id equivalence asserted below
+> does **not** hold for **resumed** sessions. The hook/statusline stdin `session_id`
+> carries the *ancestor* session's UUID while `$CLAUDE_CODE_SESSION_ID` carries the live
+> one — measured at ~10 of 33 recent sessions on the author's machine, and reproduced in
+> the session that found it (payload `916fbb77…`, live `b7b8ef0e…`, whose ancestor
+> transcript had been frozen since 2026-07-29). The decision to use per-session files
+> **stands**; only its "key by any of the three without coordination" justification is
+> wrong. Consequence: `autoflag.py` filed auto-flags under a dead ancestor id, defeating
+> both consumers named under **Why** below. Fixed 2026-07-31 — `autoflag.py` now keys off
+> `$CLAUDE_CODE_SESSION_ID`, matching the `/flag` skill; see the Producers note.
+> **Treat `$CLAUDE_CODE_SESSION_ID` as the single authoritative source** (the same reading
+> `session_tokens.py:live_transcript_path` already calls "the authoritative harness session
+> id"). Whether the payload's `transcript_path` carries the same ancestor staleness is
+> **open** — suspected, not proved.
+
 **Decision.** Move the flag store from a single global file `~/.claude/session-flags.md`
 to per-session files `~/.claude/session-flags/<session_id>.md`. The session id is the
 Claude Code session UUID — the same value visible to the agent as
 `$CLAUDE_CODE_SESSION_ID`, to hooks/statusline as `session_id` on stdin, and as the
-transcript filename (verified: all three resolve to the same UUID). So every producer and
-consumer can key by it without coordination.
+transcript filename ~~(verified: all three resolve to the same UUID)~~ **[REFUTED
+2026-07-31 — see the note above; resumed sessions break the equivalence]**. ~~So every
+producer and consumer can key by it without coordination.~~ **Producers and consumers
+must key off `$CLAUDE_CODE_SESSION_ID`.**
 
 **Why.** Two consumers need per-session attribution that a single shared file can't give:
 
@@ -26,7 +43,11 @@ consumer can key by it without coordination.
 **Producers** (write `## [LABEL]` entries to this session's file):
 
 - `/flag` skill — bash-appends to `~/.claude/session-flags/${CLAUDE_CODE_SESSION_ID:-unknown}.md`.
-- `tools/autoflag.py` (Stop hook) — writes to `<session_id>.md` using the stdin `session_id`.
+- `tools/autoflag.py` (Stop hook) — ~~writes to `<session_id>.md` using the stdin
+  `session_id`~~ **[CORRECTED 2026-07-31]** writes to
+  `${CLAUDE_CODE_SESSION_ID}.md`, falling back to the stdin `session_id` only when the env
+  var is unset. Deliberately does *not* fall back to the transcript filename stem — that
+  path is suspected to carry the same ancestor staleness.
 
 **Consumers:**
 

@@ -42,6 +42,8 @@ SUMMARY_DIR = LOG_DIR / 'sessions'
 # Backfill seeds un-wrapped *gaps*, not live sessions, so it leaves these for
 # /wrap-session — which supersedes a backfill stub anyway, but at higher quality.
 LIVE_WINDOW_SECONDS = 15 * 60
+# How often a real run emits a running cost tally, in sessions.
+PROGRESS_EVERY = 10
 
 # The format spec lives in the SYSTEM prompt (instructions), and the user turn
 # is purely the transcript (content). Keeping the two separate is what stops the
@@ -79,10 +81,27 @@ SUMMARY_PROMPT = 'Summarise the session transcript in this message.'
 # A transcript whose first user turn is one of these is itself a headless tool
 # call (our own summariser, an echo test, an agent sub-call) — machinery, not a
 # work session worth archiving. Skip it even if it landed a transcript on disk.
+# A first user turn starting with one of these is a harness invocation, not a work
+# session — an eval batch, a judge/oracle call, a liveness probe. They are the dominant
+# population by count (a 2026-07-31 survey of 30 days found ~3.8k of 4.8k candidate
+# transcripts were `TASK:`-prefixed eval calls alone) and the worst possible archive
+# content: thousands of near-identical prompts produce thousands of near-identical
+# abstracts, which bury the real sessions the corpus exists to retrieve.
+#
+# Match on the PROMPT, not the project directory — a directory-name filter hardcodes
+# today's scratch dirs and misses tomorrow's, while a harness preamble is stable and
+# self-identifying. Keep entries specific enough that a human opening a session with
+# similar words is not swept up: prefer a full role-assignment clause over a bare verb.
 MACHINE_PREFIXES = (
   'Summarise the session transcript',
   'You are summarising a past coding session',
   'Reply with exactly',
+  'Reply with the single word',
+  'TASK:',
+  'First Read these image files, in order:',
+  'You are grading a',
+  'You are auditing whether',
+  'You are one oracle in a cascade',
 )
 
 
@@ -454,6 +473,12 @@ def main() -> int:
   )
 
   done = skipped = failed = 0
+  # A dry run's job is to size the spend before it happens, so it counts the
+  # would-summarise set and breaks it down by project. Without this the closing
+  # line reads "0 summarised" (true, and useless), and a caller who pipes the
+  # per-session lines through `tail` sizes the run off a truncated list.
+  would = 0
+  would_by_project: dict[str, int] = {}
   totals: dict[str, float] = {
     'input_tokens': 0.0, 'output_tokens': 0.0,
     'cache_creation_input_tokens': 0.0, 'cache_read_input_tokens': 0.0,
@@ -471,9 +496,6 @@ def main() -> int:
       print(f'  skip (live session): {tag}', file=sys.stderr)
       skipped += 1
       continue
-    if arguments.dry_run:
-      print(f'  would summarise: {tag}', file=sys.stderr)
-      continue
     trace = extract_trace(path, arguments.cap)
     if trace is None:
       print(f'  skip (no trace): {tag}', file=sys.stderr)
@@ -482,6 +504,16 @@ def main() -> int:
     if is_machine_session(trace):
       print(f'  skip (machine session): {tag}', file=sys.stderr)
       skipped += 1
+      continue
+    # Counted only AFTER the no-trace and machine-session filters, so the number a
+    # caller sizes the spend from is what would actually be summarised. Counting
+    # earlier is cheaper (no extractor subprocess) and wrong by the entire machine
+    # population — which is most of the window. A dry run that overstates the spend
+    # is the same failure as one that understates it: the number stops being usable.
+    if arguments.dry_run:
+      print(f'  would summarise: {tag}', file=sys.stderr)
+      would += 1
+      would_by_project[meta.project] = would_by_project.get(meta.project, 0) + 1
       continue
     result = summarise(trace, arguments.model)
     if result is None:
@@ -495,11 +527,26 @@ def main() -> int:
     update_index(meta, title)
     done += 1
     print(f'  summarised: {tag} — {title[:60]}', file=sys.stderr)
+    # A long run is otherwise silent on cost until it ends — and a backgrounded
+    # one is silent to whoever approved it. Tally as we go so the spend is
+    # observable while it is still interruptible.
+    if done % PROGRESS_EVERY == 0:
+      print(
+        f'  ── progress: {done} summarised · ${totals["cost_usd"]:.4f} so far '
+        f'(~${totals["cost_usd"] / done:.4f}/session)',
+        file=sys.stderr,
+      )
 
   print(
     f'backfill: {done} summarised, {skipped} skipped, {failed} failed',
     file=sys.stderr,
   )
+  if arguments.dry_run:
+    print(f'  would summarise: {would} session(s)', file=sys.stderr)
+    for project, count in sorted(
+      would_by_project.items(), key=lambda kv: (-kv[1], kv[0])
+    ):
+      print(f'    {count:5d}  {project}', file=sys.stderr)
   if done:
     avg_cost = totals['cost_usd'] / done
     avg_in = (
