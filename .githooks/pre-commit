@@ -8,6 +8,9 @@ python3 "$ROOT/tools/cms_lint.py" || exit 1
 python3 "$ROOT/tools/test_lint_mirror.py" >/dev/null || { python3 "$ROOT/tools/test_lint_mirror.py"; exit 1; }
 # Behavioral guard for the self-improving lexical flag matcher. See tools/test_flag_corpus.py.
 python3 "$ROOT/tools/test_flag_corpus.py" >/dev/null || { python3 "$ROOT/tools/test_flag_corpus.py"; exit 1; }
+# Behavioral guard for the Stop-hook flag backstop (windowed scan, race recovery, code-span
+# blanking, cross-layer dedup, write-counted cap). See tools/test_autoflag.py.
+python3 "$ROOT/tools/test_autoflag.py" >/dev/null || { python3 "$ROOT/tools/test_autoflag.py"; exit 1; }
 # Behavioral guard for the deploy-time settings merges (merge-not-clobber, global-archive split).
 python3 "$ROOT/tools/test_deploy_settings.py" >/dev/null || { python3 "$ROOT/tools/test_deploy_settings.py"; exit 1; }
 # Behavioral guard for the tier-2 craft reminder (rule merge, per-pointer markers, fail-open).

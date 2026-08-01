@@ -88,7 +88,9 @@ assembled from tiers.
   (agent self-flags; a Stop-hook backstop nets what it skips):
   `docs/decisions/2026-06-18-two-tier-autoflagger.md`, with the backstop's
   self-improving lexical layer in
-  `docs/decisions/2026-06-20-self-improving-lexical-flag-backstop.md`.
+  `docs/decisions/2026-06-20-self-improving-lexical-flag-backstop.md` and its
+  windowed since-last-Stop scan (the flush-race fix) in
+  `docs/decisions/2026-07-31-autoflag-windowed-scan.md`.
 - **The takeaway store** — rows + firings live in a single cross-repo **hub**
   (Dolt-backed for us) at `$CMS_LANDING_ZONE/monition` (the hub-location call:
   `docs/decisions/2026-06-19-monition-hub-at-landing-zone.md`); host repos join it via `monition

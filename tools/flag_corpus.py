@@ -37,6 +37,7 @@ import math
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 LIVE_CORPUS = Path.home() / ".claude" / "flag-corpus.json"
@@ -105,14 +106,26 @@ def _weighted_jaccard(a, b, idf):
     return sum(idf(t) for t in (a & b)) / den
 
 
-def score_text(text, corpus=None, threshold=THRESHOLD):
+def score_text(text, corpus=None, threshold=THRESHOLD, budget_ms=None):
     """Best flag-worthy match for `text`, or None.
 
     Read-only and fail-open: any internal error returns None. Returns a dict
     {phrase, label, score, sentence} for the single highest-scoring (sentence,
     entry) pair at or above `threshold`.
+
+    `budget_ms` bounds wall-clock (checked between sentences, so the true ceiling
+    is budget + one corpus pass): scoring is O(sentences × entries) and the corpus
+    is add-only, so cost grows with age — a Stop-hook caller must bound it. On
+    expiry the best match *so far* is returned (a budget cut changes which hit
+    fires, never whether scoring terminates). Sentences are scanned NEWEST-first:
+    in a Stop-hook window the final message is both the likeliest home of an
+    admission and the text a flush race makes freshest — a budget that silently
+    dropped the newest text would re-blind the tool to exactly what the windowed
+    scan exists to see.
     """
     try:
+        deadline = (time.monotonic() + budget_ms / 1000.0) \
+            if budget_ms is not None else None
         corpus = corpus if corpus is not None else load_corpus()
         entries = corpus.get("entries") or []
         if not entries:
@@ -121,7 +134,9 @@ def score_text(text, corpus=None, threshold=THRESHOLD):
         prepared = [(e, _tokens(e["phrase"]), float(e.get("weight", 1.0)))
                     for e in entries]
         best = None
-        for sent in _sentences(text):
+        for sent in reversed(_sentences(text)):
+            if deadline is not None and time.monotonic() > deadline:
+                break
             st = _tokens(sent)
             if len(st) < MIN_TOKENS:
                 continue
