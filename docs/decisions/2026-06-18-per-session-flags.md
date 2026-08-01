@@ -22,8 +22,15 @@ status: decided
 > `$CLAUDE_CODE_SESSION_ID`, matching the `/flag` skill; see the Producers note.
 > **Treat `$CLAUDE_CODE_SESSION_ID` as the single authoritative source** (the same reading
 > `session_tokens.py:live_transcript_path` already calls "the authoritative harness session
-> id"). Whether the payload's `transcript_path` carries the same ancestor staleness is
-> **open** — suspected, not proved.
+> id"). ~~Whether the payload's `transcript_path` carries the same ancestor staleness is
+> **open** — suspected, not proved.~~ **RESOLVED 2026-07-31: it does NOT.** The staleness
+> is **field-specific**. Measured from `autoflag.py`'s own scanpos record in the resumed
+> session that found the bug: `transcript_path` named the **live** transcript
+> (`b7b8ef0e…jsonl`, read to line 1132) while the same payload's `session_id` was the
+> ancestor's — and the ancestor transcript is 515 lines, frozen two days earlier, so a
+> hook reading it could not have reached 1132. This also removes the one alternative the
+> diagnosis could not previously rule out: the flush race is the sole explanation for the
+> 0-of-13, not a stale file.
 
 **Decision.** Move the flag store from a single global file `~/.claude/session-flags.md`
 to per-session files `~/.claude/session-flags/<session_id>.md`. The session id is the
@@ -46,8 +53,10 @@ must key off `$CLAUDE_CODE_SESSION_ID`.**
 - `tools/autoflag.py` (Stop hook) — ~~writes to `<session_id>.md` using the stdin
   `session_id`~~ **[CORRECTED 2026-07-31]** writes to
   `${CLAUDE_CODE_SESSION_ID}.md`, falling back to the stdin `session_id` only when the env
-  var is unset. Deliberately does *not* fall back to the transcript filename stem — that
-  path is suspected to carry the same ancestor staleness.
+  var is unset. It does not fall back to the transcript filename stem — ~~that path is
+  suspected to carry the same ancestor staleness~~ **[measurement 2026-07-31 shows the
+  stem would in fact resolve correctly; it is omitted because deriving identity from a
+  path is a second-order inference the harness could change, not because it is stale]**.
 
 **Consumers:**
 

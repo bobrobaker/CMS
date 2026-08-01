@@ -352,10 +352,15 @@ def _main(dbg):
     # session — the two things per-session files exist to provide. The /flag skill
     # already uses the env var, so this also makes the two producers agree.
     #
-    # Deliberately NOT falling back to `Path(transcript).stem`: the payload's
-    # transcript_path is suspected to carry the same ancestor staleness, so that
-    # fallback would reintroduce the bug it is meant to guard. "unknown" is the
-    # honest failure — /mine-session's directory sweep still drains it.
+    # The staleness is FIELD-SPECIFIC, not payload-wide: measured 2026-07-31 via this
+    # hook's own scanpos record, `transcript_path` carried the LIVE session's file in
+    # the same resumed session whose `session_id` was the ancestor's (scanpos named
+    # b7b8ef0e…jsonl at line 1132; the ancestor's transcript is 515 lines and frozen).
+    # So `Path(transcript).stem` would in fact resolve correctly today — it is omitted
+    # anyway because deriving identity from a path is a second-order inference that the
+    # harness could change without notice, and the env var is the authoritative source
+    # the /flag skill already uses. "unknown" is the honest failure; /mine-session's
+    # directory sweep still drains it.
     session = os.environ.get("CLAUDE_CODE_SESSION_ID") or str(
         data.get("session_id", "unknown"))
     dbg["session"] = session
