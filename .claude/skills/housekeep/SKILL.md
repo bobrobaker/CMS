@@ -48,23 +48,35 @@ root=$(git rev-parse --show-toplevel 2>/dev/null)
   | sed -n '/^backfill:/,$p'   # the count + per-project breakdown, not the per-session lines
 ```
 
+The `sed` is not cosmetic: it removes the per-session lines from view entirely, so the
+only number you can read is the one the tool computed. Do not replace it with
+`head`/`tail` — those show you rows to count, which is the failure this guards.
+
 The dry run extracts and filters every candidate before counting, so it takes minutes on
-a wide `--days` window rather than returning instantly — that is the cost of a number
-that matches what would actually be summarised. Let it finish; don't size off a partial.
+a wide `--days` window rather than returning instantly. **Let it exit.** A count taken
+from a still-running process is not a total, and neither is one taken from a truncated
+pipe — both understate, and both look authoritative.
 
-**Size the run from the `would summarise: N session(s)` line and its per-project
-breakdown — never from the streamed `would summarise: <tag>` lines.** Those stream one
-per session and can run to thousands; piping them through `head`/`tail` yields a number
-that looks like the scope and is not, and the proposal below then quotes it to the user
-as the spend they are approving. (This is not hypothetical: a 2026-07-31 sweep reported
-"26 sessions" off a `tail -30` and ran 164, ~96% of them throwaway scratch/subagent
-transcripts.)
+**COMPUTE AND STATE before you propose.** Do not paraphrase this step — perform it:
+read `N` from the `would summarise: N session(s)` line and the top three rows of the
+per-project breakdown, then **write them verbatim into the proposal**, in this shape:
 
-**Propose** `python3 "$root/archive/backfill.py"` (optionally `--days`, `--limit`) and
-**quote the per-project breakdown in the proposal** — the archive earns its keep on real
-project sessions, and a window dominated by `*-scratch` / `tmp` / worktree projects is a
-spend the user should see before approving, not after. Don't run it unprompted: it makes
-one model call per session.
+> backfill would summarise **N** session(s) — top projects: `<p1>` a, `<p2>` b, `<p3>` c.
+> At ~$0.04/session that is roughly **$X**. Run it?
+
+If you cannot fill every slot from the tool's own output, you do not have the number —
+say so and re-run, rather than proposing a spend sized by eye. A per-project breakdown
+dominated by `*-scratch` / `tmp` / worktree projects is the signal to narrow `--days` or
+extend `MACHINE_PREFIXES` *before* spending, not to discover after.
+
+Why the ritual: on 2026-07-31 a sweep reported **"26 sessions"** to the user off a
+`--dry-run | tail -30`. Challenged, it corrected to **"164"** — counted off summary files
+on disk while the run was still going. The finished run: **632 summarised, $24.87**, the
+large majority throwaway scratch/eval transcripts. Two wrong totals, the second produced
+*while actively correcting the first*, because both were read off a partial view instead
+of the tool's own final count. (Row t491.)
+
+Don't run it unprompted: it makes one model call per session.
 
 ### B — Orphaned flag files
 
