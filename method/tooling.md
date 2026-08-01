@@ -101,8 +101,9 @@ split, applied to the auditor's own write permissions.
   abandoned worktrees, takeaway rows due for audit — noise-heavy or never-firing, read
   off `monition report`; plus global skill-farm drift — loose dirs or dangling links in
   `~/.claude/skills/`). Its doc-drift / merge-candidate / always-on-leanness slice is
-  still a manual "audit the docs against their own rules" prompt; codify that into a
-  skill when the project runs it a third time. Two *currency* subclasses of doc-drift now
+  the `/audit-docs` skill, cadence-nagged monthly by `/housekeep` §M (the same
+  detection-vs-resolution split: §M reports "due", the skill resolves — report and
+  propose, consent-gated). Two *currency* subclasses of doc-drift now
   carry a tier-1 backstop (the tighten-the-mechanical-shadow corollary above): a decision
   doc whose top verdict is contradicted by a later `## Update` (`check_two_headed_decision`),
   and a doc line calling a feature unbuilt while its symbol/CLI verb already ships

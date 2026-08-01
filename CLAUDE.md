@@ -50,9 +50,9 @@ use that machinery or improve it.
   `status: decided|superseded` (linted) so retirement is visible at the file, not just in a
   registry. `docs/DESIGN.md` is CMS's live-verdict registry — consult it for *which* call
   currently stands.
-- **Mirror-back sweep.** At the start of a session here (or on request), read the shared
-  upstream-candidates queue and propose each candidate through the consent gate; a landed
-  candidate is struck from the queue in the same pass. **Canonical queue location** (all
+- **Mirror-back sweep.** At the start of a session here (or on request), run
+  `/mirror-back` — it reads the shared upstream-candidates queue, proposes each candidate
+  through the consent gate, and strikes landed candidates in the same pass. **Canonical queue location** (all
   producers and consumers resolve it this way, so a candidate can't be written to one place
   and swept from another): `$CMS_LANDING_ZONE/handoffs/upstream-candidates.md` when a
   landing zone is set — every fork on the shared hub appends there, so one read surfaces
