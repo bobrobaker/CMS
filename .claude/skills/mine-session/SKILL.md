@@ -160,7 +160,11 @@ You are mining this session for takeaways. The store's semantics live in
    edit_path glob, session_start, or on_demand), `one_liner` (what gets injected —
    make it a trap-warning, not a description, and keep it **≤150 chars**: every char
    is paid on every fire, and `monition show <id>` carries the depth; `monition add`
-   hard-rejects past 250), `full_content` (the why + the workaround), `source`
+   hard-rejects past 250), `full_content` (the why + the workaround; when there's depth, structure it as
+   `## Pitfalls` / `## Verification` sections — a convention, applied
+   opportunistically, never required. No "When to Use" section: `trigger_spec` is
+   the sole authority on when a row fires and `monition show` already prints it —
+   prose duplicating it drifts into lying after any retarget), `source`
    (session/commit). Prefer candidates grounded in an observable artifact (the
    failing test's name, the exact error line, the reverted diff) over the model's
    own theory of why it failed — self-diagnosed causes are unreliable (0/121 correct
