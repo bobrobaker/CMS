@@ -125,7 +125,7 @@ for base in "${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs}" "$(git rev-parse -
     [ -e "$f" ] || continue
     [ "$(basename "$f")" = "upstream-candidates.md" ] && continue   # §E owns the queue
     grep -qs '^type: confer' "$f" && continue                        # §D owns confer threads
-    st=$(grep -m1 '^status:' "$f" | sed 's/status:[[:space:]]*//')
+    st=$(grep -m1 '^status:' "$f" | sed 's/status:[[:space:]]*//; s/[[:space:]]*$//')
     cr=$(grep -m1 '^created:' "$f" | sed 's/created:[[:space:]]*//')
     [ -n "$cr" ] || cr="mtime:$(date -Id -r "$f" 2>/dev/null)"       # no created: → age by mtime
     case "$st" in
@@ -304,8 +304,10 @@ From its table, surface as **propose** only the clear cases:
 - active rows with 0 firings ever → **first check whether the row is
   matched-but-suppressed**, then apply the two-stage ladder. A row can trigger
   normally and still never fire: the relevance cascade cuts the candidate before
-  injection (below the score floor, or over the per-prompt budget). Query the
-  store's `suppressions` table for the row's id. **If it has suppression events the
+  injection (below the score floor, or over the per-prompt budget). Check via the
+  read-verb — `monition export-firings --suppressed-only`, filtered to the row's
+  takeaway id (never a raw store query; all reads go through the approved
+  reader). **If it has suppression events the
   widen/retire ladder does not apply** — widening produces more stray candidates
   for the floor to cut, adding suppression noise without ever yielding a firing.
   Report those as their own class: the row lost on *relevance or budget*, not on
