@@ -141,14 +141,18 @@ def _parse(raw):
 def window_since_last_stop(transcript, session, dbg):
     """All assistant text flushed since the previous invocation's read point.
 
-    The read point is a persisted per-session line offset — NOT a boundary inferred
-    per-invocation — because that is what kills the flush race: whatever the harness
-    hadn't flushed when this invocation read the file sits past the saved offset and
-    is scanned by the next invocation instead of being lost. Two details carry that
-    guarantee: a torn tail line (no trailing newline — still mid-flush) is not
-    counted, so the offset never advances past text that hasn't finished landing;
-    and the state carries a hash of the last counted line, so a same-path rewrite
-    (compaction) can't smuggle a numerically-valid offset onto different content.
+    The read point is a persisted per-session BYTE offset (the start of the last
+    counted line) — NOT a boundary inferred per-invocation — because that is what
+    kills the flush race: whatever the harness hadn't flushed when this invocation
+    read the file sits past the saved offset and is scanned by the next invocation
+    instead of being lost. Two details carry that guarantee: a torn tail line (no
+    trailing newline — still mid-flush) is not counted, so the offset never
+    advances past text that hasn't finished landing; and the state carries a hash
+    of the last counted line, verified in place after seek(), so a same-path
+    rewrite (compaction) can't smuggle a numerically-valid offset onto different
+    content. The byte offset is what bounds the steady-state cost by the WINDOW,
+    not the transcript: reading+splitting a 27MB transcript costs tens of ms of
+    the hook's ~50-150ms budget when the actual window is ~9KB.
 
     With no valid state (first Stop of a session, a rewritten transcript, a changed
     path) the fallback is the current turn only: assistant lines after the last
@@ -159,49 +163,58 @@ def window_since_last_stop(transcript, session, dbg):
     Known residual: the SESSION-FINAL block can still lose the race — there is no
     next invocation to pick it up. Every earlier block is covered.
 
-    Returns UNCAPPED text; the caller caps AFTER code-span stripping (a cap cut
-    inside a fence would orphan the closing ``` and blank everything after it).
+    Returns UNCAPPED per-block texts (a list); the caller strips code spans PER
+    BLOCK — fences are balanced within one message but not across a join, so one
+    orphan fence must not blank every later block — then caps after joining.
     """
-    try:
-        with open(transcript, encoding="utf-8") as fh:
-            content = fh.read()
-    except Exception:
-        return ""
-    if content and not content.endswith("\n"):
-        content = content[:content.rfind("\n") + 1]  # torn tail: not flushed yet
-    raw_lines = [l for l in content.splitlines() if l.strip()]
-
     state_path = _scan_state_path(session)
-    start = None
     try:
         with open(state_path, encoding="utf-8") as fh:
             state = json.load(fh)
-        if state.get("transcript") == str(transcript):
-            n = int(state.get("lines", -1))
-            if 0 <= n <= len(raw_lines) and (
-                    n == 0 or _line_sha(raw_lines[n - 1]) == state.get("tail")):
-                start = n
     except Exception:
-        pass
-    if start is not None:
+        state = {}
+
+    lines = None  # [(absolute byte offset, raw line bytes)] still to be scanned
+    tail = None   # (offset, line) of the last counted line, for the next state
+    if state.get("transcript") == str(transcript):
+        # Fast path: seek to the saved tail line and verify it by hash — the read
+        # is bounded by the suffix, never the whole transcript.
+        try:
+            tail_start = int(state["tail_start"])
+            tail_sha = state.get("tail", "")
+            cand = _nonempty_lines(_read_flushed(transcript, tail_start),
+                                   tail_start)
+            if not tail_sha:
+                if tail_start == 0:
+                    lines = cand  # transcript was empty at the last stop
+            elif cand and _line_sha(cand[0][1]) == tail_sha:
+                lines = cand[1:]  # verified: resume just past the tail line
+        except Exception:
+            lines = None
+    if lines is not None:
         dbg["boundary"] = "offset"
-        objs = [_parse(r) for r in raw_lines[start:]]
+        tail = cand[-1] if cand else None
+        objs = [_parse(l) for _, l in lines]
     else:
-        # Parse everything only on this (rare) path; the offset path parses just
-        # the suffix — a whole-transcript parse costs ~185ms at 27MB, more than
-        # the entire hook budget.
-        all_objs = [_parse(r) for r in raw_lines]
+        # Full read+parse only on this (rare) path — a whole-transcript parse
+        # costs ~185ms at 27MB, more than the entire hook budget.
+        try:
+            cand = _nonempty_lines(_read_flushed(transcript, 0), 0)
+        except Exception:
+            return []
+        all_objs = [_parse(l) for _, l in cand]
         last_prompt = -1
         for i, obj in enumerate(all_objs):
             if _real_user_prompt(obj):
                 last_prompt = i
-        start = last_prompt + 1 if last_prompt >= 0 else len(raw_lines)
-        objs = all_objs[start:]
+        k = last_prompt + 1 if last_prompt >= 0 else len(cand)
+        lines, objs, tail = cand[k:], all_objs[k:], (cand[-1] if cand else None)
         dbg["boundary"] = ("fallback:last-prompt" if last_prompt >= 0
                           else "fallback:no-prompt")
 
-    new_state = {"transcript": str(transcript), "lines": len(raw_lines),
-                 "tail": _line_sha(raw_lines[-1]) if raw_lines else ""}
+    new_state = {"transcript": str(transcript),
+                 "tail_start": tail[0] if tail else 0,
+                 "tail": _line_sha(tail[1]) if tail else ""}
     try:
         import tempfile
         fd, tmp = tempfile.mkstemp(dir="/tmp", prefix="autoflag_scanpos_tmp_")
@@ -211,14 +224,38 @@ def window_since_last_stop(transcript, session, dbg):
     except Exception:
         pass  # worst case: next invocation falls back to current-turn-only
 
-    dbg["scanned_lines"] = f"{start}..{len(raw_lines)}"
+    dbg["scanned_lines"] = len(lines)
     texts = [t for t in (_assistant_text(o) for o in objs) if t]
     dbg["blocks"] = len(texts)
-    return "\n\n".join(texts)
+    return texts
+
+
+def _read_flushed(transcript, offset):
+    """Bytes of `transcript` from `offset`, trimmed to the last full line — a
+    torn tail (no trailing newline) hasn't finished flushing and is not counted."""
+    with open(transcript, "rb") as fh:
+        fh.seek(offset)
+        data = fh.read()
+    if data and not data.endswith(b"\n"):
+        data = data[:data.rfind(b"\n") + 1]
+    return data
+
+
+def _nonempty_lines(data, base):
+    """(absolute byte offset, line bytes) for each nonempty line of `data`,
+    where `data` was read starting at file offset `base`."""
+    out, pos = [], 0
+    for line in data.split(b"\n"):
+        if line.strip():
+            out.append((base + pos, line))
+        pos += len(line) + 1
+    return out
 
 
 def _line_sha(raw_line):
-    return hashlib.sha1(raw_line.encode("utf-8")).hexdigest()[:16]
+    if isinstance(raw_line, str):
+        raw_line = raw_line.encode("utf-8")
+    return hashlib.sha1(raw_line).hexdigest()[:16]
 
 
 # --- code-span blanking (match on stripped, report from original) ---------------
@@ -365,16 +402,20 @@ def _main(dbg):
         data.get("session_id", "unknown"))
     dbg["session"] = session
 
-    full = window_since_last_stop(transcript, session, dbg)
-    if not full:
+    blocks = window_since_last_stop(transcript, session, dbg)
+    if not blocks:
         return
 
-    # Strip code spans BEFORE capping: a cap cut landing inside a fenced block
-    # would orphan the closing ``` , which then pairs with end-of-text and blanks
-    # every later sentence — the newest prose, on exactly the big code-heavy turns
-    # the cap exists for. Stripping first sees balanced fences; the identical
-    # slice then keeps original and stripped offset-aligned.
-    stripped = strip_code_spans(full)
+    # Strip code spans PER BLOCK, then join, then cap. Per block: fences are
+    # balanced within one assistant message but not across the join — one orphan
+    # ``` in an early block (a quoted fence, a truncated code dump) would pair
+    # with \Z and blank every later block, hiding exactly the admissions this
+    # tool exists to catch. _blank preserves length and the join separators are
+    # identical, so original and stripped stay offset-aligned. Cap AFTER
+    # stripping: a cap cut inside a fence would orphan the closing ``` on the
+    # newest prose, on exactly the big code-heavy turns the cap exists for.
+    full = "\n\n".join(blocks)
+    stripped = "\n\n".join(strip_code_spans(b) for b in blocks)
     text, stripped = full[-WINDOW_CAP:], stripped[-WINDOW_CAP:]
     dbg["chars"] = len(text)
 
