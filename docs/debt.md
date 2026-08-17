@@ -14,6 +14,19 @@ edited and append anything deferred here, with enough locus to act on it cold.
 
 ## Shelf
 
+- [ ] **Feedback↔monition graduation seam (design, open).** How a skill-feedback
+  entry graduates into a monition row is unresolved — the parked synthesis wrongly
+  treated all monition triggers as probabilistic (`session_start`/`edit_path` are
+  deterministic; only `on_demand` is fuzzy). Interim call in effect: keep the
+  three-layer text feedback system. Pick up from
+  `docs/decisions/2026-06-17-skill-three-layer-and-feedback.md` (caveat noted there).
+  (Routed from handoffs/deferred-actions.md, 2026-08-16.)
+- [ ] **Feedback→monition run-marker detection (build, enhancement).** A skill leaves
+  an "I ran (+ output)" marker; `/mine-session` detects when the output was adjusted
+  and routes the improvement through the codify gate. Detection is the only unbuilt
+  piece — the routing exists. Not a blocker.
+  (Routed from handoffs/deferred-actions.md, 2026-08-16.)
+
 - [x] (Done 2026-07-02: homed in dotfiles, symlink repointed.) `~/.claude/skills/agents-view` — the skill is a loose, untracked directory (no git
   home); it survives only until the next reimage. Needs a repo to live in.
 - [x] (Done 2026-07-02: surgical-commits was already owned by /eos step 3; replay-fidelity

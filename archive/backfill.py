@@ -100,8 +100,10 @@ MACHINE_PREFIXES = (
   'TASK:',
   'First Read these image files, in order:',
   'You are grading a',
+  'You are grading whether',
   'You are auditing whether',
   'You are one oracle in a cascade',
+  '[monition replay worker protocol]',
 )
 
 

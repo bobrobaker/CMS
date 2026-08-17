@@ -125,7 +125,12 @@ assembled from tiers.
   doctor triage, interactive steps). Method in `method/deploy.md`. The harness hooks wire
   **global-when-applicable** (the `~/.claude/cms` anchor present → archive hooks stay global) and
   **self-sufficient otherwise**, so a wired repo runs the loop regardless — see
-  `docs/decisions/2026-06-28-one-skill-deploy-and-conditional-harness-hooks.md`.
+  `docs/decisions/2026-06-28-one-skill-deploy-and-conditional-harness-hooks.md`. Vendoring also
+  **retires**: a `.cms-skills-manifest` written into the fork's `tools/` at vendor time bounds deletion to skills a
+  previous CMS vendor itself installed (fork-native skills are structurally unreachable), and
+  `--update`/`--doctor` check that monition's baked regen is current with CMS's authoring sources
+  so a successful `monition sync` can't ship a stale monition-owned skill — see
+  `docs/decisions/2026-08-16-skill-retirement-and-regen-currency.md`.
 
 ## Roadmap (forward)
 

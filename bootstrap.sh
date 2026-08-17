@@ -160,9 +160,21 @@ refresh_manifest() {
 # forever. So we skip the whole dir (body + the authoring-only fork-overrides file) and leave
 # that skill to monition. The marker gates it, so a future fork-variant skill auto-excludes —
 # no per-skill list to maintain. See docs/decisions/2026-07-03-fork-variant-skills-monition-owned.md.
+#
+# Vendoring also RETIRES skills: `cp` alone can only ever add, so a skill CMS deletes (folded
+# into another, superseded) lived on forever in every fork. The delete authority is bounded by
+# a manifest CMS writes at vendor time ($SKILLS_MANIFEST_REL) listing exactly the skills THIS
+# vendor shipped. On the next vendor, a fork skill dir is removed only when all three hold:
+# (a) it is in the fork's PREVIOUS manifest — i.e. CMS put it there, so it is not fork-native;
+# (b) this vendor no longer ships it; (c) CMS has no skill dir by that name at all — which
+# re-derives (b) from disk and keeps a skill that merely became monition-owned (marker added
+# after it was vendored) from being read as retired. A pre-manifest fork has no manifest, hence
+# no delete authority: the first run deletes nothing and only records the baseline.
+SKILLS_MANIFEST_REL="tools/.cms-skills-manifest"
 vendor_skills() {  # $1 = src root, $2 = dst root
-  local src="$1" dst="$2" d name
-  mkdir -p "$dst/.claude/skills"
+  local src="$1" dst="$2" d name prev shipped=""
+  local manifest="$dst/$SKILLS_MANIFEST_REL"
+  mkdir -p "$dst/.claude/skills" "$dst/tools"
   for d in "$src"/.claude/skills/*/; do
     [ -d "$d" ] || continue
     name="$(basename "$d")"
@@ -170,12 +182,52 @@ vendor_skills() {  # $1 = src root, $2 = dst root
       log "skipping skill $name — monition sync owns its deployed form (fork-overrides marker)"
       continue
     fi
+    shipped="$shipped$name"$'\n'
     # Copy CONTENTS (`$d` ends in `/`, so `$d.` is the dir's contents) into the dest skill
     # dir, matching the original `skills/.` merge — a per-dir `cp -R "$d" dest` would nest
     # `dest/$name/$name` on a re-run where dest already exists (the --update path).
     mkdir -p "$dst/.claude/skills/$name"
     cp -R "$d". "$dst/.claude/skills/$name/"
   done
+  if [ -f "$manifest" ]; then
+    while IFS= read -r prev; do
+      [ -n "$prev" ] || continue
+      case $'\n'"$shipped" in *$'\n'"$prev"$'\n'*) continue ;; esac   # (b) still shipped
+      # (c) CMS still has a dir by that name (`&& continue` would trip `set -e` when false)
+      if [ -d "$src/.claude/skills/$prev" ]; then continue; fi
+      [ -d "$dst/.claude/skills/$prev" ] || continue
+      rm -rf "${dst:?}/.claude/skills/$prev"
+      log "retired skill $prev — CMS no longer ships it (it was vendored by CMS, per the manifest)"
+    done < "$manifest"
+  fi
+  printf '%s' "$shipped" > "$manifest"
+}
+
+# Currency probe for the monition-owned skills' BAKED regen output.
+#
+# Those skills reach a fork through monition, not through the copy above: CMS holds the
+# authoring source, monition's tools/regen_from_cms.py bakes it into src/monition/_generated_cms.py,
+# and `monition sync` writes that baked constant into the fork. So an edit to CMS's mine-session
+# that never got a regen leaves every `--update` reporting success while shipping the OLD skill,
+# fleet-wide and silently — the one seam where "sync succeeded" and "the fork is current" come
+# apart. This probe closes it by asking the regen tool itself whether a re-run would change
+# anything (`--check` writes nothing).
+#
+# Fail-open by design, matching the hooks: no monition checkout, or a regen predating --check,
+# means no news — a forker without monition sources must not be blocked. Returns:
+#   0 current · 1 STALE · 2 probe failed · 3 not applicable (skip)
+# and echoes the tool's own message.
+_regen_currency_probe() {  # $1 = CMS root
+  local msrc regen out rc=0
+  msrc="${MONITION_SRC:-$MONITION_SRC_DEFAULT}"
+  regen="$msrc/tools/regen_from_cms.py"
+  [ -f "$regen" ] || return 3
+  # Capability probe FIRST: a pre---check regen has no argparse, so passing --check would
+  # silently REGENERATE (and rewrite the baked file) instead of reporting.
+  grep -q -- '"--check"' "$regen" || return 3
+  out="$(CMS_ROOT="$1" python3 "$regen" --check 2>&1)" || rc=$?
+  printf '%s' "$out"
+  case "$rc" in 0) return 0 ;; 1) return 1 ;; *) return 2 ;; esac
 }
 
 # `--update`: re-vendor the managed set + stamp into an already-bootstrapped fork, opt-in.
@@ -221,6 +273,18 @@ update_target() {  # $1 = target path
   else
     warn "monition CLI absent — monition-owned skills not refreshed (run 'monition sync' in $dst)"
   fi
+  # …and that sync is only as current as monition's baked regen. Check it, loudly.
+  local rout rrc=0
+  rout="$(_regen_currency_probe "$src")" || rrc=$?
+  case "$rrc" in
+    0) log "monition's baked regen is current with CMS's authoring sources" ;;
+    1) warn "STALE monition-owned skills: $rout"
+       warn "  'monition sync' just ran and succeeded, but it ships monition's BAKED copy —"
+       warn "  so $dst received the OLD skill body. Remediate at the source, then re-sync:"
+       warn "    (cd ${MONITION_SRC:-$MONITION_SRC_DEFAULT} && python3 tools/regen_from_cms.py)"
+       warn "    ./bootstrap.sh --update $dst" ;;
+    2) warn "regen currency check could not run: $rout" ;;
+  esac
   # Keep the recovery pointer current: if this clone moved since the deploy, the recorded
   # env.CMS_SRC is where a future /deploy or --update would (wrongly) look.
   python3 "$DEPLOY_SETTINGS" set-env "$dst" "CMS_SRC=$src" \
@@ -713,6 +777,16 @@ print(cfg.get("env", {}).get("MONITION_STORE", ""), end="")' "$root/.claude/sett
       *) _chk WARN hook-errors "hook-error scan failed to run (exit $hrc): $hout" ;;
     esac
   fi
+
+  # Monition-owned skills ship from monition's baked regen, not from the vendor copy — a fork
+  # can be fully "in sync" and still carry a stale mine-session. Silent when unassessable.
+  local rout rrc=0
+  rout="$(_regen_currency_probe "$SELF_DIR")" || rrc=$?
+  case "$rrc" in
+    0) _chk PASS regen-currency "monition's baked mine-session matches CMS's authoring sources" ;;
+    1) _chk WARN regen-currency "$rout (then re-run --update; forks carry the OLD body until then)" ;;
+    2) _chk WARN regen-currency "check failed to run: $rout" ;;
+  esac
 
   if [ -f "$root/.mcp.json" ]; then _chk PASS mcp-json "present"; else
     _chk WARN mcp-json "absent — monition MCP server not registered here"; fi

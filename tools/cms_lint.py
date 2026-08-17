@@ -89,7 +89,7 @@ def check_unfilled_placeholders(path, text):
         error(path, "unfilled {{placeholder}} outside starter/")
 
 
-DECISION_STATUSES = {"decided", "superseded"}
+DECISION_STATUSES = {"decided", "superseded", "rejected"}
 _FM_RE = re.compile(r"^---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", re.S)  # tolerate CRLF + a closing --- that ends the file
 _FM_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*)$")
 
@@ -150,7 +150,7 @@ def check_decision_status(path, text):
     fm = _frontmatter(text)
     status = fm.get("status")
     if status is None:
-        error(path, "decision doc missing frontmatter `status:` (expected decided|superseded)")
+        error(path, "decision doc missing frontmatter `status:` (expected decided|superseded|rejected)")
         return
     if status not in DECISION_STATUSES:
         error(path, f"decision doc `status: {status}` not in {sorted(DECISION_STATUSES)}")
@@ -336,6 +336,33 @@ def check_gated_vs_shipped(path, text):
                                f"`{m.group(2)}` is a registered CLI verb — reconcile, it shipped.")
 
 
+_PENDING_RE = re.compile(r"\b(?:pending|awaits?|awaiting)\b", re.I)
+_RATIFY_RE = re.compile(r"\b(?:ratif\w+|go-live)\b", re.I)
+_LINE_DATE_RE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
+
+
+def check_stale_pending_ratification(path, text):
+    """Shadows: 'a pending-user-decision claim goes stale the moment the human acts, and
+    nothing in the doc pipeline fires on the commit that acts' — the highest-yield drift
+    class Tier-3 audits keep finding. Fires on a line pairing pending/awaits language with
+    ratification/go-live language whose newest inline date is >30 days old. Dateless
+    matches are skipped: without a date the age is unknowable here, and the Tier-3 audit
+    owns that judgment. Loose semantic shadow → always WARN. Mirror of
+    lint_skeleton.check_stale_pending_ratification — edit both together."""
+    for i, line in enumerate(text.splitlines(), 1):
+        if not (_PENDING_RE.search(line) and _RATIFY_RE.search(line)):
+            continue
+        dates = []
+        for tok in _LINE_DATE_RE.findall(line):
+            try:
+                dates.append(datetime.strptime(tok, "%Y-%m-%d").date())
+            except ValueError:
+                pass
+        if dates and (date.today() - max(dates)).days > 30:
+            warn(path, f"line {i}: 'pending ratification'-shaped claim dated {max(dates)} "
+                       "(>30d old) — the decision has likely since been made; verify and reconcile")
+
+
 CANDIDATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\s*\|")
 
 
@@ -368,7 +395,8 @@ def check_upstream_candidates(_path=None, _text=None):
 
 
 CHECKS = [check_relative_links, check_provenance, check_unfilled_placeholders, check_decision_status,
-          check_architecture_freshness, check_two_headed_decision, check_gated_vs_shipped]
+          check_architecture_freshness, check_two_headed_decision, check_gated_vs_shipped,
+          check_stale_pending_ratification]
 GLOBAL_CHECKS = [check_upstream_candidates]
 
 

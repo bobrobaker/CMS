@@ -93,6 +93,27 @@ Consumer-owned files are guarded, not overwritten:
   `monition sync` explicitly so a refresh still delivers currency. See
   `docs/decisions/2026-07-03-fork-variant-skills-monition-owned.md`.
 
+**Skill retirement propagates — bounded by a manifest.** A copy-only vendor can add but never
+remove, so a skill the canonical corpus deletes (folded into another, superseded) survives in
+every fork forever. Each vendor writes `tools/.cms-skills-manifest`: exactly the skill names
+that vendor shipped. On the next vendor a fork skill dir is deleted only when it (a) is in the
+fork's **previous** manifest — proof the canonical source put it there, so it is not fork-native
+— (b) is no longer shipped, and (c) has no directory of that name in the canonical source at
+all, which keeps a skill that merely became *monition-owned* from reading as retired. The
+invariant: **deletion authority extends only to what a previous vendor itself installed.** A
+pre-manifest fork therefore has no authority — its first run deletes nothing and only records
+the baseline, so the retirement of a skill that predates the manifest is a one-time manual
+removal.
+
+**Monition-owned skills carry their own currency risk.** They reach a fork through monition's
+*baked* regen output, not through the copy above, so an edit to the canonical authoring source
+that never got regenerated leaves `--update` reporting success while shipping the old body —
+fleet-wide and silently. `--update` and `--doctor` therefore ask monition's regen tool whether a
+re-run would change anything (`regen_from_cms.py --check`, which writes nothing) and WARN with
+the remediation. It is fail-open like the hooks: no monition checkout, or a regen predating
+`--check`, means no news — and the capability is probed *before* invoking, because a regen
+without that flag would silently regenerate instead of reporting.
+
 Apply-to-target also records the deploying clone's absolute path as `env.CMS_SRC` in the
 target's gitignored `.claude/settings.local.json` (merged via `deploy_settings.py set-env`).
 `bootstrap.sh` itself never travels with the target, so this pointer is how a later recovery
