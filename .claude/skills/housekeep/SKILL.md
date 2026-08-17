@@ -365,6 +365,42 @@ as G2. Two disciplines gate the reading:
   topic (a topic-shaped pattern self-matches). Most keeps won't qualify — under-match or
   skip; it's a targeted prompt on the row you chose to keep, not a blanket sweep.
 
+#### G4 — cold-pause rescue batch due (weekly, Dolt hub only)
+
+The cold-pause rescue pipeline (monition `tools/metaeval_judge.py rescue-sample` →
+`windows` → `judge` → `rescue-labels` → consented `apply-labels`; decision
+`docs/decisions/2026-08-16-rescue-runner-operationalization.md` in the monition repo) is
+batch-run, not scheduled — this clause is its trip-wire, so paused rows don't sit
+suppressed until someone remembers. Weekly stamp, same shape as G1
+(`$d/monition-rescue-due.last`). Fail open: skip silently unless `dolt` is installed and
+`MONITION_STORE` names a Dolt store (`.dolt/` present) — the pipeline needs the hub and
+local transcripts, so it only runs where they live.
+
+```bash
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"; stamp="$d/monition-rescue-due.last"
+if command -v dolt >/dev/null 2>&1 && [ -d "$MONITION_STORE/.dolt" ] && \
+   { [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -7 2>/dev/null)" ]; }; then
+  (cd "$MONITION_STORE" && dolt sql -r csv -q "
+    SELECT CASE WHEN c >= 15 THEN 'paused' ELSE 'approaching' END AS band,
+           COUNT(*) AS rows_
+    FROM (SELECT f.takeaway_id, COUNT(*) AS c
+          FROM firings f JOIN takeaways t ON t.id = f.takeaway_id
+          WHERE f.agent_id IS NULL AND t.status = 'active'
+          GROUP BY f.takeaway_id
+          HAVING COUNT(*) >= 12
+             AND SUM(CASE WHEN f.outcome IS NOT NULL THEN 1 ELSE 0 END) = 0) x
+    GROUP BY 1" 2>/dev/null) && touch "$stamp"
+fi
+```
+
+Reading: `paused` = rows the gate is suppressing right now (≥15 main-head fires, zero
+ratings of any provenance); `approaching` = 12–14, will cross within weeks. Rows already
+rescued drop out automatically (their auto ratings zero the predicate). Any `paused`
+count > 0 → **propose**: "cold-pause rescue batch due (N paused, M approaching) — run
+the rescue pipeline in a monition-cwd session." `approaching`-only → **report-only**.
+Never run the judge from this sweep: the batch spends judge tokens and ends at a human
+approval, so it belongs in a session the user is driving.
+
 ### H — Global skill-farm drift
 
 `~/.claude/skills/` is a symlink farm: each entry must be a symlink into a source repo
