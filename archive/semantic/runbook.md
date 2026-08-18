@@ -40,9 +40,13 @@ python3 index.py --force    # full wipe-and-rebuild
 ```
 
 Capture (`/wrap-session`, `backfill.py`) keeps the summary corpus current; the
-index is rebuilt separately. `server.py` prints a staleness warning when
-summaries postdate the last index build, so a missed re-index is visible, not
-silent.
+index is rebuilt separately. Two nets cover the gap. The drift net is
+`/housekeep` §N: when summaries postdate the index it runs the incremental
+indexer automatically. The on-use backstop is `server.py`, which prints a
+staleness warning inside `search_sessions` results when summaries postdate the
+last build — visible only when a semantic search actually runs, so it cannot be
+relied on alone (the index once sat 2 months stale before the first
+user-visible symptom).
 
 ## Which retrieval fires (routing, v1)
 

@@ -24,7 +24,8 @@ Two invariants, both load-bearing:
 Classify every finding into exactly one:
 
 1. **Auto-reap** — mechanical, safe, *cannot lose information*. Do it, then report it as
-   done. Only two things qualify (see F and B below). Nothing else is ever auto-applied.
+   done. Only three things qualify (see F, B, and N below). Nothing else is ever
+   auto-applied.
 2. **Propose** — a real change that needs a yes: deletion, archival, running a tool. List
    each with the specific action; act only on confirmation.
 3. **Report-only** — surfaced for the user's judgment; this skill takes no action.
@@ -627,6 +628,52 @@ fi
   claims, proposing strikes through the consent gate — is `/audit-docs`'s job, invoked
   per repo, not this skill's.
 
+### N — Semantic session-index staleness (global machinery)
+
+The session archive's semantic index (`~/.claude/logs/sessions-index/`) is rebuilt
+separately from capture — nothing in `/wrap-session` or `backfill.py` touches it, so
+without this net it drifts silently until the next semantic search happens to print its
+staleness note (observed 2 months stale before the first user-visible symptom). Like §A
+this is **global machinery**: it concerns the machine-wide archive, so it runs regardless
+of which repo invoked housekeep.
+
+Resolve the interpreter and indexer from the registered `session-archive` MCP server —
+the venv is machine-local and may be borrowed from another project, so never hardcode a
+path:
+
+```bash
+idx=~/.claude/logs/sessions-index/chroma.sqlite3
+corpus=~/.claude/logs/sessions
+reg="$(python3 - <<'EOF' 2>/dev/null
+import json, os
+c = json.load(open(os.path.expanduser('~/.claude.json')))['mcpServers']['session-archive']
+server = next(a for a in c['args'] if a.endswith('server.py'))
+print(c['command']); print(os.path.join(os.path.dirname(server), 'index.py'))
+EOF
+)"
+if [ -n "$reg" ]; then
+  py="$(printf '%s\n' "$reg" | sed -n 1p)"
+  indexer="$(printf '%s\n' "$reg" | sed -n 2p)"
+  if [ ! -f "$idx" ] || [ ! -x "$py" ] || [ ! -f "$indexer" ]; then
+    echo "NOTICE: session-archive MCP is registered but a piece is missing (index/interpreter/indexer) — semantic recall may be broken"
+  elif [ -n "$(find "$corpus" -maxdepth 1 -name '*.md' -newer "$idx" -print -quit 2>/dev/null)" ]; then
+    "$py" "$indexer" 2>/dev/null | tail -1     # the tool's own summary line
+  fi
+fi
+```
+
+- **No `session-archive` registration** (semantic layer never set up on this machine) →
+  skip the category silently — a fork without the optional semantic layer should see no
+  daily noise.
+- **Registered but index/interpreter/indexer missing** → **report-only** NOTICE: the
+  setup is broken, and only the user knows whether it moved or was retired.
+- **Summaries postdate the index** → **auto-fix**: run the incremental indexer and report
+  its own summary line (`incremental: N reindexed, …`). This qualifies for the unattended
+  tier because it is idempotent and only adds/updates index entries — it cannot lose
+  information; an all-skip run costs seconds. If the run errors, downgrade to a propose
+  line rather than retrying.
+- **Index current** → silent.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are
@@ -653,8 +700,8 @@ d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"
 ## Anti-goals
 
 - **Not an auto-deleter.** The only unattended actions are the two mechanical reaps (empty
-  dead-session flag files; `git worktree prune` of already-gone dirs). Every other change
-  is proposed.
+  dead-session flag files; `git worktree prune` of already-gone dirs) and the §N
+  incremental reindex, which only adds to an index. Every other change is proposed.
 - **Doesn't reimplement its dependencies.** It *calls* `backfill.py`, points at
   `/mine-session` and the mirror-back sweep — it never duplicates their logic.
 - **Not the Tier-3 doc audit.** This reaps orphan/staleness residue. Drift between
