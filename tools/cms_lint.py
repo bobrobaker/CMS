@@ -89,7 +89,11 @@ def check_unfilled_placeholders(path, text):
         error(path, "unfilled {{placeholder}} outside starter/")
 
 
-DECISION_STATUSES = {"decided", "superseded", "rejected"}
+# 'proposed' = drafted, awaiting ratification — valid but advisory-nagged (see the WARN
+# in check_decision_status): a proposal is a live decision surface, not lint debt; it
+# must resolve to decided/rejected/superseded, so the WARN keeps it visible without
+# blocking commits. (Codified 2026-08-20, monition-origin.)
+DECISION_STATUSES = {"decided", "superseded", "rejected", "proposed"}
 _FM_RE = re.compile(r"^---\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)", re.S)  # tolerate CRLF + a closing --- that ends the file
 _FM_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):\s*(.*)$")
 
@@ -150,10 +154,14 @@ def check_decision_status(path, text):
     fm = _frontmatter(text)
     status = fm.get("status")
     if status is None:
-        error(path, "decision doc missing frontmatter `status:` (expected decided|superseded|rejected)")
+        error(path, "decision doc missing frontmatter `status:` (expected decided|superseded|rejected|proposed)")
         return
     if status not in DECISION_STATUSES:
         error(path, f"decision doc `status: {status}` not in {sorted(DECISION_STATUSES)}")
+        return
+    if status == "proposed":
+        warn(path, "decision doc is `status: proposed` — awaiting ratification; "
+                   "resolve to decided/rejected (or supersede) before it goes stale")
         return
     if status == "superseded":
         msg = validate_superseded_target(path, fm.get("superseded_by"))

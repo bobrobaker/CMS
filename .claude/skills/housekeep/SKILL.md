@@ -199,13 +199,20 @@ git worktree list 2>/dev/null              # everything currently registered
 
 Read the **canonical shared queue** (CLAUDE.md's mirror-back rule): the landing-zone hub
 when set — every fork appends there, so one read surfaces *all* forks' open candidates —
-else this repo's own. Count only **open** candidates (dated `YYYY-MM-DD |` lines), not the
-struck-provenance comment blocks a resolved sweep leaves behind:
+else this repo's own. Count only **open** candidates, not the struck-provenance comment
+blocks a resolved sweep leaves behind. Candidates are written in three shapes — a dated
+`YYYY-MM-DD | rule | origin` line, a `## ` block entry, or an unchecked `- [ ]` line —
+so the count matches all three and subtracts the landed ones (a pipe-only grep read the
+hub's block entries as an empty queue, 2026-08-20):
 
 ```bash
 q="${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs/upstream-candidates.md}"
 [ -n "$q" ] || q="$(git rev-parse --show-toplevel 2>/dev/null)/handoffs/upstream-candidates.md"
-[ -f "$q" ] && grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} \|' "$q"
+# open = pipe line | `## ` block heading | unchecked `- [ ]`, MINUS anything marked
+# landed: struck `~~…~~` or tagged `[landed …]`/`[declined …]`/`[resolved …]`.
+# Fully-resolved entries live in `> ` provenance blockquotes, which no pattern matches.
+[ -f "$q" ] && grep -E '^([0-9]{4}-[0-9]{2}-[0-9]{2} \||## |- \[ \] )' "$q" \
+  | grep -cvE '~~|\[(landed|declined|resolved)'
 ```
 
 **Report-only.** A non-zero count means teaching-surface proposals are waiting: surface

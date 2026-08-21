@@ -25,11 +25,18 @@ carry them (`method/` and `starter/` both present), stop with one line: run
    ```bash
    q="${CMS_LANDING_ZONE:+$CMS_LANDING_ZONE/handoffs/upstream-candidates.md}"
    [ -n "$q" ] || q="$(git rev-parse --show-toplevel)/handoffs/upstream-candidates.md"
+   # open = pipe line | `## ` block heading | unchecked `- [ ]`, MINUS anything marked
+   # landed: struck `~~…~~` or tagged `[landed …]`/`[declined …]`/`[resolved …]`.
+   grep -nE '^([0-9]{4}-[0-9]{2}-[0-9]{2} \||## |- \[ \] )' "$q" \
+     | grep -vE '~~|\[(landed|declined|resolved)'
    ```
 
-   Open candidates are the dated `YYYY-MM-DD | rule | origin` lines; struck-provenance
-   blockquotes are history, not work; the header/format prose is neither. Queue absent
-   or zero open lines → print `✓ mirror-back: queue empty` and stop.
+   Open candidates come in three shapes — a dated `YYYY-MM-DD | rule | origin` line, a
+   `## ` block entry (heading plus its body until the next entry), or an unchecked
+   `- [ ]` line; a pipe-only match reads a queue of block entries as empty (2026-08-20).
+   Struck-provenance blockquotes are history, not work; the header/format prose is
+   neither. Queue absent or zero open candidates → print `✓ mirror-back: queue empty`
+   and stop.
 
 2. **Walk each open candidate, oldest first.** Per candidate:
    - Show the line verbatim (date, rule, origin).
@@ -56,7 +63,10 @@ carry them (`method/` and `starter/` both present), stop with one line: run
    > - *short handle* — landed in `<target file>` (<what changed>). Origin: <origin>.
    ```
 
-   Extend the same day's existing block rather than opening a second one.
+   Extend the same day's existing block rather than opening a second one. For a long
+   `## ` block entry, the equivalent in-place strike is allowed instead of relocating the
+   whole body: strike the heading (`## ~~…~~`) or tag it `[landed YYYY-MM-DD]` — the
+   detection rule in step 1 stops counting it either way.
 
 4. **On decline or defer:** leave the line open, untouched. If a candidate is declined
    *for good* (judged not to survive the strip), offer to strike it with a `declined:`

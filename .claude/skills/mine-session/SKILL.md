@@ -26,7 +26,16 @@ You are mining this session for takeaways. The store's semantics live in
      - **`helpful`** — the fire *applied and shaped the action* you took — and it
        fired **before** that action (check `fired_at` against the action's time). A
        post-hoc fire proves nothing causally: matched-but-already-acted is `unrated`,
-       never `helpful`.
+       never `helpful`. **Causal, not merely consistent** — exactly two shapes qualify,
+       and your citation must be tagged with the one you're claiming:
+       `cited:` (the row referenced by id or unmistakable paraphrase after it fired) or
+       `newly-enacted:` (its prescribed action taken, for the first time this session,
+       after it fired). "Session behavior matches the row" is consistency, not
+       causation. **Novelty gate on `newly-enacted:`** — if the behavior was already
+       your practice this session, or was already enforced by tooling/config/a
+       pre-existing habit, the row changed nothing: `noise` or unrated, never
+       `helpful`. (Replay-retro calibration 2026-07-10: 8/10 live `helpful` labels were
+       mis-attributed, all to these two failure modes.)
      - **`noise`** — the fire *did not apply to this context*; the dilution is the cost, so
        this is the label even for a precise trigger that over-fired. "No action-changing
        evidence" is **not** a skip reason — an irrelevant fire is `noise`, not unrated.
@@ -102,10 +111,19 @@ You are mining this session for takeaways. The store's semantics live in
      actually apply here?" and closes the escape hatch where ambiguous/irrelevant fires
      get swept into unrated to dodge a judgment.
    - **Present ONE batch for bulk confirm** — all proposed ratings at once, each line
-     `<firing_id> helpful|noise — <one-line evidence>`. The user accepts the batch in a
+     `<firing_id> helpful|noise — <one-line evidence>`, and every `helpful` line
+     prefixed with its `cited:` / `newly-enacted:` tag. A `helpful` you cannot tag is
+     not a `helpful`. The user accepts the batch in a
      single gesture with per-line veto/flip. This is a **lighter gate than rows** (`method/
      write-path.md`): a rating is reversible eval data, not durable governance, so don't
      run rows-grade scrutiny per line.
+   - **One credit per behavior — resolve collisions *in* the batch, before presenting.**
+     Group the drafted `helpful` lines by the behavior each cites. Where one behavior
+     backs several co-fired rows, credit only the **most-specific** row and rewrite the
+     rest in the same batch as `unrated — one-credit: ceded to <firing_id>` (that line
+     is the stated output; a silently dropped row doesn't show the user the collision).
+     Two `helpful` lines resting on the same action is a bundle-credit error, not two
+     wins — a co-fired dump can otherwise turn one good action into five labels.
    - **Apply the accepted lines:** `monition rate <firing_id> helpful|noise` for each.
      These leave uncommitted store state that folds into the `monition commit` at step 5
      (snapshot them on their own first only if you want them out of an unrelated diff —
