@@ -681,6 +681,23 @@ fi
   line rather than retrying.
 - **Index current** → silent.
 
+### O — Aged fork-replay capture dirs (propose-only)
+
+`~/.claude/p7-captures/` accrues one snapshot dir per flag-time capture (repo state +
+`FLAG.md` + `transcript.jsonl` — see
+`docs/decisions/2026-08-24-flag-time-fork-replay-capture.md`). Each is a full repo copy,
+so the disk cost is real, but a capture exists precisely because it cannot be
+reconstructed — **propose, never auto-reap**.
+
+```bash
+find ~/.claude/p7-captures -mindepth 1 -maxdepth 1 -type d -mtime +30 2>/dev/null
+du -sh -- ~/.claude/p7-captures 2>/dev/null | cut -f1
+```
+
+Dirs older than ~30 days have usually outlived the replay experiment that wanted them —
+list them with sizes and ask; the user knows whether a replay gate still needs one.
+Directory absent → silent.
+
 ## Output
 
 Group findings under the three tier headings, most actionable first. Auto-reaps are

@@ -13,6 +13,14 @@ You are mining this session for takeaways. The store's semantics live in
    - **Other files** — include one ONLY if its session is no longer live (a genuine orphan from a closed, un-mined session). A session is live if `~/.claude/sessions/*.json` holds a record whose `sessionId` equals the filename's id. **Never drain a file whose session is still live** — those flags belong to an active concurrent session. When liveness can't be determined (registry unreadable), treat as live and leave it.
    - Build the worklist: `ls ~/.claude/session-flags/*.md`, then for each, keep it iff its id == `$CLAUDE_CODE_SESSION_ID` OR its id is absent from the live registry. Read the kept, non-empty files.
    - Surface this session's flags first, then orphans. `POSTMORTEM` flags are high-priority — do not mine past them; ask whether to invoke `/postmortem` now or defer. `MONITION`/`GOVERNANCE` are pre-routed seeds. `GENERAL` joins the normal mining review.
+   - **Preserve captures before deleting.** For each drained entry carrying a
+     `> Snapshot:` line (a flag-time fork-replay capture — see
+     `docs/decisions/2026-08-24-flag-time-fork-replay-capture.md`): copy the full entry
+     into `<snapshot-path>/FLAG.md`, and copy that session's transcript
+     (`~/.claude/projects/<slug>/<session-id>.jsonl`) to
+     `<snapshot-path>/transcript.jsonl` — the drain `rm` and the ~30-day transcript
+     cleanup would otherwise each kill half the capture. Transcript already gone → note
+     it in `FLAG.md` and continue. Entries without a `> Snapshot:` line drain as normal.
    - Delete only the files you actually drained (`rm`). **Fail open:** absent directory, unreadable file, or unreadable registry → skip that file silently (when in doubt, do NOT delete).
 
 0b. **Scan for admitted mistakes.** Before the rating pass, review the session for any moment where Claude explicitly admitted to an error — especially assertions made without verification that turned out to be wrong ("I was wrong about X", "I should have checked", "I asserted X without verifying"). Each such moment is a candidate seed for a governance change: flag it for routing in the mining pass. The question is always: *what would have prevented this class of mistake?* (The `autoflag.py` Stop hook is the mechanical mirror of this scan — it regex-catches the same admitted-error class live and writes a `GOVERNANCE` flag, so step 0a may already hold some.)

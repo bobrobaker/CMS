@@ -38,7 +38,30 @@ monition firings, not /flag bookmarks.)
    ```
    Where `[LABEL]` is `MONITION`, `GOVERNANCE`, `POSTMORTEM`, or `GENERAL`. If `$CLAUDE_CODE_SESSION_ID` is unset the file falls back to `unknown.md`, which `/mine-session`'s directory sweep still drains.
 
-4. **Confirm to the user** in one line: what was flagged and under which label. Don't interrupt flow — no headers, no summary sections.
+4. **Fork-replay capture (optional, toggleable — off by default).** A flagged error
+   moment can later be causally tested by forking the session just before it
+   (monition P7). That test needs two things only capturable NOW: the fork
+   coordinate, and the repo's dirty state (which keeps changing after the flag).
+   - Default: capture only when `MONITION_FLAG_CAPTURE=1` is set in the
+     environment (users opt in via their settings env block).
+   - Per-invocation override, either direction: `/flag ... --capture` forces it
+     on; `/flag ... --no-capture` forces it off. The argument always beats the
+     env default.
+   - When capturing: append a `> Fork-coordinate:` line to the flag entry with
+     the session id + current transcript record count
+     (`wc -l < ~/.claude/projects/<slug>/$CLAUDE_CODE_SESSION_ID.jsonl`), then
+     snapshot the repo state: `rsync -a --exclude .venv <repo>/
+     ~/.claude/p7-captures/<repo-basename>-<UTC-timestamp>/` and append
+     `> Snapshot: <that path>` too. Cost: disk-only, ~5s on a ~0.5GB repo
+     (incremental if the dir exists); no tokens. Skip silently (with a
+     `> Snapshot: SKIPPED <reason>` line) if the repo can't be resolved.
+   - Rationale: retroactive reconstruction of repo state leaks the future (VCS
+     history, artifact coherence); flag-time capture is the only fidelity path.
+     The capture contract (env toggle, `--capture`/`--no-capture` precedence,
+     snapshot layout, drain survival) is governed by the flag-capture drain
+     contract decision record.
+
+5. **Confirm to the user** in one line: what was flagged and under which label (and `+capture` when the snapshot ran). Don't interrupt flow — no headers, no summary sections.
 
 ## Anti-goals
 

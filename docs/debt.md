@@ -86,6 +86,11 @@ edited and append anything deferred here, with enough locus to act on it cold.
   a05e43e); the *ownership* decision (cms update skips forkgen-swapped skills, or monition sync
   re-splices after `--update`) is STILL OPEN — §L surfaces the skew but not which variant is
   correct. The "audit the other four forks" ask was discharged by the 2026-07-12 fleet fix.
+- [ ] bootstrap.sh:link_global — doesn't exclude fork-variant (`*.fork-overrides.md`-marked)
+  skills the way `vendor_skills` does, so a `--link-global` re-run would symlink
+  mine-session's raw authoring source (CMS-only step 6, live `forkgen:` markers) into
+  `~/.claude` globally. Mirror the vendor_skills exclusion. (Found by deploy-check
+  2026-08-23; monition +1'd the fix, no opinion beyond that.)
 - [ ] Fractional-factorial eval-helper idea (handoff deleted 2026-07-02, was 16d
   stale with nothing built): a runnable helper measuring how well a CLAUDE.md line
   reduces its target failure, via fractional-factorial design + stats. Three design
