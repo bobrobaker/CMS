@@ -130,7 +130,12 @@ assembled from tiers.
   previous CMS vendor itself installed (fork-native skills are structurally unreachable), and
   `--update`/`--doctor` check that monition's baked regen is current with CMS's authoring sources
   so a successful `monition sync` can't ship a stale monition-owned skill — see
-  `docs/decisions/2026-08-16-skill-retirement-and-regen-currency.md`.
+  `docs/decisions/2026-08-16-skill-retirement-and-regen-currency.md`. Vendored copies are
+  **snapshots by design** (a fork must survive without a canonical checkout), so every canonical
+  skill edit drifts them; the currency of that population is owned by `/deploy-check`, which
+  enumerates manifest-bearing repos and diffs each changed skill rather than trusting the
+  auto-current global symlink — see
+  `docs/decisions/2026-08-26-vendored-copies-vs-global-symlink.md`.
 
 ## Roadmap (forward)
 
