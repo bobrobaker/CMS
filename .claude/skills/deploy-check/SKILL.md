@@ -46,6 +46,13 @@ it does not silently mutate the repo beyond creating a missing skill symlink whe
   Note the direction: the vendoring gotcha most people reach for is the *opposite* one
   (a re-vendor clobbering fork-local edits) — that one is about the write, this one is
   about the write that never happened.
+- **A re-vendor that was never committed leaves the instance current on disk and stale in
+  `HEAD` — and a working-tree diff calls that `✓`.** `--update` writes into the target's
+  working tree and stops; committing is a separate, manual, per-repo step that is easy to
+  skip when the tree is already dirty with unrelated work. The vendored body a forker or a
+  clean clone receives is the one in `HEAD`, so that is what the currency check must diff.
+  Tell: the target repo's skill file matches canonical but `git -C <repo> status` has had
+  it modified since the last vendor — the drift is real and older than it looks.
 - **A personal-config edit (`~/.claude`, `~/dotfiles`) must NOT go through
   `upstream-candidates.md`.** That queue is the fork-distribution channel for
   teaching-surface changes only. The personal-config channel is separate — route dotfiles
@@ -104,28 +111,58 @@ Run only the checks whose surface was touched.
   vendor manifest (`tools/.cms-skills-manifest`, written by `vendor_skills()`) makes those
   instances enumerable: any repo carrying one was vendored by this corpus and holds frozen
   bodies. Enumerate them, diff each changed skill against canonical, and list each stale
-  instance as its own `✗` with the re-vendor fix — never sample one repo and generalize.
+  instance as its own `✗` with its fix — never sample one repo and generalize.
+
+  **Diff the committed tree, not the working tree.** A vendored file on disk is not what
+  the instance ships: `--update` writes into the working tree and stops there, so a prior
+  vendor that was never committed leaves the repo looking current on disk while `HEAD` — the
+  body a clean clone, a forker, or CI actually gets — is still old. A working-tree diff
+  reports `✓` over exactly that state. Compare `git show HEAD:<path>` and treat the on-disk
+  body as the secondary signal that separates the two failure modes.
 
   ```sh
   # Search root: sibling repos by default; override with CMS_FORK_ROOT.
   root="${CMS_FORK_ROOT:-$(dirname "$PWD")}"
+  head_body=$(mktemp); trap 'rm -f "$head_body"' EXIT
   for m in $(find "$root" -maxdepth 3 -name .cms-skills-manifest 2>/dev/null | sort); do
     repo=$(dirname "$(dirname "$m")")
     for skill in <the skills changed this session>; do
-      f="$repo/.claude/skills/$skill/SKILL.md"
-      [ -f "$f" ] || { echo "MISSING $repo $skill"; continue; }
-      cmp -s "$f" "$PWD/.claude/skills/$skill/SKILL.md" || echo "STALE $repo $skill"
+      rel=".claude/skills/$skill/SKILL.md"
+      canon="$PWD/$rel"
+      # Committed body is the shipped body. Absent from HEAD => never versioned.
+      if ! git -C "$repo" show "HEAD:$rel" > "$head_body" 2>/dev/null; then
+        echo "UNVERSIONED $repo $skill"; continue
+      fi
+      if cmp -s "$head_body" "$canon"; then
+        echo "current     $repo $skill"
+      elif [ -f "$repo/$rel" ] && cmp -s "$repo/$rel" "$canon"; then
+        echo "UNCOMMITTED $repo $skill"   # disk current, HEAD stale
+      else
+        echo "STALE       $repo $skill"   # both stale
+      fi
     done
   done
   ```
 
-  Fix for each stale repo: `./bootstrap.sh --update <repo>` (re-vendors the managed set;
-  never hand-edit a vendored body — the next vendor overwrites it). Two exclusions keep
-  this honest: a **fork-variant** skill (a `*.fork-overrides.md` sibling in its canonical
-  dir) is not vendored at all — its currency is monition's regen probe, not this diff; and
-  a skill **absent from a repo's manifest** was never shipped there, so `MISSING` is a
-  not-yet-vendored signal, not staleness. This check applies in the canonical upstream,
-  where the vendoring originates; in a downstream fork there is nothing to enumerate.
+  Each state has a **different** fix, so report them separately:
+  - `STALE` — never vendored since the change. Fix: `./bootstrap.sh --update <repo>`, then
+    commit the CMS-managed paths in that repo. Never hand-edit a vendored body; the next
+    vendor overwrites it.
+  - `UNCOMMITTED` — a previous vendor ran and was left in the working tree. Re-running
+    `--update` changes nothing and reports success; the fix is a **commit** in that repo.
+    This is the state a working-tree diff cannot see, and it hides across sessions.
+  - `UNVERSIONED` — the path is not in `HEAD` at all, usually because the repo `.gitignore`s
+    `.claude/`. Its skills are current on disk but travel with nobody. Do not `git add -f`
+    past a deliberate ignore rule — surface it and let the owner decide.
+
+  Two exclusions keep this honest: a **fork-variant** skill (a `*.fork-overrides.md` sibling
+  in its canonical dir) is not vendored at all — its currency is monition's regen probe, not
+  this diff; and a skill **absent from a repo's manifest** was never shipped there, so its
+  absence is a not-yet-vendored signal, not staleness. This check applies in the canonical
+  upstream, where the vendoring originates; in a downstream fork there is nothing to
+  enumerate. Note the canonical side of the comparison is the working tree on purpose —
+  that is what `vendor_skills()` copies — which is why the *Fork distribution* item above
+  separately flags a canonical edit that is itself still uncommitted.
 - *Read the ✗ count for what it is.* Where the author's machine resolves skills through
   the global symlink farm (`--link-global`), a **global** skill shadows a same-named
   project-local one, so a stale vendored copy is inert *for that author* — the frozen body

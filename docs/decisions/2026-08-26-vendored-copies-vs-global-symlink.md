@@ -64,6 +64,30 @@ mechanism does not change. Specifically:
   farm. The vendored copy is precisely the forker's copy, which is the audience the corpus
   exists for.
 
+## Amendment (same day): the check diffs the committed tree
+
+The first cut of the enumeration diffed each instance's **working tree** against canonical.
+Executing the fleet sweep the same day showed that is the wrong tree, and showed it the
+expensive way: the target repos' "dirty working trees" turned out to be largely *prior
+uncommitted vendors*. `--update` writes into a working tree and stops — committing is a
+separate manual step, easily skipped when the tree already carries unrelated work — so the
+instances read as current on disk while `HEAD`, the body a clean clone or a forker actually
+receives, was older still. One repo was missing sixteen whole skill directories from version
+control. A working-tree diff reports `✓` over precisely that state, which means the first
+cut of this check would have certified the fleet as deployed while it was not.
+
+So the check now compares `git show HEAD:<path>` and uses the on-disk body only to
+discriminate the failure modes, which have different fixes: `STALE` (never vendored → 
+`--update` then commit), `UNCOMMITTED` (vendored but never committed → a commit; re-running
+`--update` changes nothing and reports success), and `UNVERSIONED` (path absent from `HEAD`,
+typically a `.gitignore`d `.claude/` → surface it, never `git add -f` past a deliberate
+ignore rule). Validated against the fleet: eight repos `current`, one `UNVERSIONED`
+(matching its known ignore rule), one `STALE` (correctly excluded from the sweep).
+
+The general form of the error: **"is it deployed" is a question about committed state, and
+the working tree is a tempting proxy that answers a different question.** Any future
+propagation check in this corpus should diff what ships, not what is lying around.
+
 ## Residual
 
 Currency is still *pull*-based: a stale fork is detected only when someone runs the check. The
