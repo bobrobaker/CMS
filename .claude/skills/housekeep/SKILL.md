@@ -154,6 +154,11 @@ delete (work died) / promote to durable doc (became a runbook) / route the work 
 target repo's `road.md`/`debt.md` then delete the envelope (real but unstarted — a
 handoff is a transfer envelope, not a backlog) / do the pick-up (genuinely imminent).
 
+Caveat on delete: `handoffs/` is gitignored, so an `rm` here is permanent (not
+git-recoverable) — and the harness's auto-mode blocks an unnamed `rm` issued under a
+general housekeep authorization. Name the specific file when proposing deletion, or
+prefer the non-destructive `mv` to `handoffs/archive/`.
+
 ### D — Stale confer threads
 
 Confer threads (`type: confer`, named `YYYY-MM-DD-confer-<slug>.md`) live in `handoffs/`
@@ -408,6 +413,48 @@ count > 0 → **propose**: "cold-pause rescue batch due (N paused, M approaching
 the rescue pipeline in a monition-cwd session." `approaching`-only → **report-only**.
 Never run the judge from this sweep: the batch spends judge tokens and ends at a human
 approval, so it belongs in a session the user is driving.
+
+#### G5 — auto-rate spool drain due (weekly)
+
+The SubagentStop auto-rate spool accumulates continuously and nothing drains it on its
+own; undrained spool is dropped evidence sitting on `/tmp`, and past the contract's
+staleness horizon it is junk. Monition owns the machinery and the read side
+(`monition spool-status`); this clause owns only cadence and the consent shape. Weekly
+stamp, same shape as G1; skip silently if `monition` is absent or the verb is missing.
+
+```bash
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"; stamp="$d/monition-spool-drain.last"
+out="$d/monition-spool-status.json"; mkdir -p "$d"; rm -f "$out"
+if command -v monition >/dev/null 2>&1 && \
+   { [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -7 2>/dev/null)" ]; }; then
+  monition spool-status --json > "$out" 2>/dev/null && touch "$stamp"
+fi
+[ -s "$out" ] || :   # not due, or no monition → skip G5 silently
+```
+
+Reading: **propose a drain** when `total_records >= 50` **or** `stale_sessions > 0`
+**or** `oldest_age_days >= 5` (the last is the pre-emptive trip-wire — past
+`stale_after_days` the records are contract-junk). Empty/absent spool → silent.
+
+**What it proposes — never auto-runs.** The drain writes `auto` ratings to the hub and
+is judgment-bearing, so surface the workflow and stop: (1) `monition auto-rate
+--dry-run --emit-verdicts <path>` (judge runs, nothing written); (2) curate the emitted
+verdicts into a labels file — helpfuls are the risk surface; (3)
+`monition apply-labels <labels.json>` for the curated set only. A blanket auto-drain
+was explicitly found unsafe once; this clause restores *timeliness*, not the gate.
+
+#### G6 — hub-hygiene: firings ↔ transcripts (weekly, propose-only)
+
+Every `firings.session_id` **within the transcript-retention window** should have a
+locatable transcript under `~/.claude/projects/*/<session_id>.jsonl` or belong to a
+named exemption class (quarantined; documented probe ids). Fabricated or hand-named
+test sessions in the production hub are otherwise invisible until an eval gate trips
+over them. Scope the sweep to firings whose `fired_at` falls inside the retention
+horizon (~30 days) — transcripts are cleaned up past it, so an unbounded predicate
+mass-flags every legitimate old firing and trains dismissal; older fabrications are
+explicitly out of this check's reach. Weekly stamp (`$d/monition-hub-hygiene.last`),
+same shape as G1. Any violator → **propose** `monition quarantine-firing` with a
+reason, never run it — report-only otherwise, silent when clean.
 
 ### H — Global skill-farm drift
 
@@ -697,6 +744,34 @@ du -sh -- ~/.claude/p7-captures 2>/dev/null | cut -f1
 Dirs older than ~30 days have usually outlived the replay experiment that wanted them —
 list them with sizes and ask; the user knows whether a replay gate still needs one.
 Directory absent → silent.
+
+### P — Machine-health logs (weekly, report-only)
+
+Hook-error logs self-announce degradation into a file, and a reader that only runs at
+deploy/bootstrap time lets a loud failure run silent for days — the gap is *cadence*,
+not absence. Do **not** reimplement the scan (a freehand "count error lines" diverges
+from the shipped recency model); invoke the existing scanner weekly over each
+machine-health log found. Resolve the tool through the repo root or the skill-farm
+symlink, exactly as §A resolves `backfill.py`; skip the category silently if the tool
+is absent.
+
+```bash
+d="${XDG_STATE_HOME:-$HOME/.local/state}/cms"; stamp="$d/health-log-scan.last"
+root=$(git rev-parse --show-toplevel 2>/dev/null)
+[ -f "$root/tools/hook_error_scan.py" ] || root=$(readlink -f ~/.claude/skills/housekeep 2>/dev/null | sed 's|/\.claude/skills/housekeep$||')
+if [ -f "$root/tools/hook_error_scan.py" ] && \
+   { [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -7 2>/dev/null)" ]; }; then
+  for log in "${XDG_STATE_HOME:-$HOME/.local/state}"/*/hook-errors.log; do
+    [ -e "$log" ] || continue
+    python3 "$root/tools/hook_error_scan.py" --log "$log" --window-days 7 2>/dev/null
+  done
+  mkdir -p "$d" && date -Is > "$stamp"
+fi
+```
+
+**Report-only**: surface the scanner's own output per log; one line when clean.
+Resolution stays with the repo that owns the hook — this sweep never edits or
+truncates a health log.
 
 ## Output
 

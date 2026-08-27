@@ -68,7 +68,10 @@ use that machinery or improve it.
 - **Self-flag flag-worthy moments (tier 1 of the autoflagger).** When a response of yours
   hits a flag-worthy moment — you admit an error, a gotcha recurs, or a "we should make
   this a rule" realization lands — append a `/flag` entry inline (don't wait to be asked,
-  don't break flow). You are the judge here: full context, free, more reliable than any
+  don't break flow). Exception: when the moment is an **error flag** and a flag-time
+  capture hook is armed in the repo (e.g. `MONITION_FLAG_CAPTURE=1`), invoke the `flag`
+  skill instead of appending inline — the inline shortcut skips the skill body and
+  silently drops the armed capture side effects. You are the judge here: full context, free, more reliable than any
   keyword match — and you are deterministic only if you remember, which under crowded
   context you won't, so the backstop matters. `tools/autoflag.py` (the Stop hook) is the
   tier-2 net for what you skip; don't rely on it as the primary path. It has two

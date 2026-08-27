@@ -26,7 +26,7 @@ def _strip_code(text: str) -> str:
 # machine-local paths must not appear in method/, starter/, or skill doc bodies.
 # Greppable strings only — whether a hit is legitimate stays a judgment call, so
 # this is WARN, never ERROR.
-PROVENANCE_RE = re.compile(r"\bvvsim\b|\bbrain2\b|\bMTG\b|\bbolun\b|~/projects/|/home/", re.I)
+PROVENANCE_RE = re.compile(r"\bvvsim\b|\bbrain2\b|\bMTG\b|\bbolun\b|~/projects/|/home/|\bruns/20\d\d-", re.I)
 PROVENANCE_DIRS = ("method", "starter", os.path.join(".claude", "skills"))
 
 errors = []

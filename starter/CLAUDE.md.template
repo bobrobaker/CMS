@@ -79,6 +79,12 @@ the prompt with: "End your response with a `## Takeaways` block: decisions made,
 hit, lessons worth keeping." Subagent transcripts are not visible to the main session —
 only the return value is — so without this, reasoning that surfaced lessons is lost.
 
+For workers running long headless pipelines, put the literal polling/wake mechanism in
+the spawn prompt — a foreground-poll snippet, an orchestrator rule that a completion
+notification from a worker reporting in-flight work triggers an immediate poke, a
+fallback wake when idling on delegated work. Prose like "hold your turn open" doesn't
+bite; the mechanism does.
+
 ## Communication
 
 - **Context before questions**: before asking the user to decide anything that rests on

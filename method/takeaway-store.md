@@ -41,6 +41,14 @@ bookkeeping transitions into accidental kill switches):
   The store is a single hub shared across repos: `project` (the default) fires
   only where `origin_repo` matches the current repo; `general` fires in any repo.
 
+Two further trigger kinds exist in the machinery (`monition set-trigger --kind` lists
+all five): `tool_call` — a matcher on a pending tool invocation, injected as
+pre-tool-call hook context — and `state_probe`. A `tool_call` design caveat: the
+injection rides the call it matched, so in practice the model reads the warning only
+after the action has run. For a row whose failure is a single irreversible call (a
+push, a publish, an `rm`), trigger earlier in the causal chain — `on_demand` on the
+stated intent — or accept that the row documents the failure rather than prevents it.
+
 **`firings`** — one row per disclosure: takeaway, time, session, trigger kind, what
 matched (`trigger_context`), and a nullable `outcome` rated after the fact.
 `fire_count` / `last_fired` are queries, never columns (single source).
@@ -64,6 +72,14 @@ Two entry points, one gate:
 
 Both entry points route candidates the same way — row vs. governance edit is
 decided by the tests in `method/lesson-routing.md`, not here.
+
+Any check of a new lesson against what the store already holds is similarity-shaped
+and therefore blind to contradictions — two rules can conflict outright while sharing
+no vocabulary. For a prescriptive lesson, also ask the semantic question: *what does
+the store currently tell me to do in this situation, and does this disagree — or agree
+for a reason that doesn't compose?* The cost asymmetry is what earns the extra pass: a
+missed duplicate is mergeable redundancy; a missed contradiction leaves the store
+quietly self-contradicting, a failure mode that grows with store maturity.
 
 Designing the trigger is the craft step: ask "in what session would this lesson
 have saved me?" and describe *that session's* footprint — not the broadest match

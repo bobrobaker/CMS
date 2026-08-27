@@ -125,6 +125,14 @@ You are mining this session for takeaways. The store's semantics live in
      single gesture with per-line veto/flip. This is a **lighter gate than rows** (`method/
      write-path.md`): a rating is reversible eval data, not durable governance, so don't
      run rows-grade scrutiny per line.
+   - **Verbatim-citation guard.** Every quoted fragment in an evidence line must be a
+     literal substring of the session's *extracted* transcript text. Extract once at
+     the start of this pass and grep each quote against that snapshot — never against
+     the raw `.jsonl` (its JSON-escaping breaks honest quotes containing quote marks or
+     newlines), and never against transcript content generated during the rating pass
+     itself (a quote you first uttered while drafting ratings self-matches). A quote
+     that doesn't occur in the snapshot is a fabricated citation and disqualifies the
+     rating.
    - **One credit per behavior — resolve collisions *in* the batch, before presenting.**
      Group the drafted `helpful` lines by the behavior each cites. Where one behavior
      backs several co-fired rows, credit only the **most-specific** row and rewrite the
