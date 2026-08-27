@@ -37,6 +37,15 @@ it does not silently mutate the repo beyond creating a missing skill symlink whe
   strips it from every forker.** `bootstrap.sh` does not wire hooks — that committed file
   IS the only hook wiring an in-place forker inherits. Globalizing = ADD to the global
   `~/.claude` dotfile and KEEP the committed copy; never move it out.
+- **A canonical skill edit is not deployed just because the symlink is live — every
+  repo that was ever *vendored* still holds a frozen copy.** `bootstrap.sh vendor_skills()`
+  copies skill bodies into each bootstrapped repo at vendor time; nothing refreshes them
+  until the next `--update`. So after editing a canonical skill there are two populations:
+  the symlink (auto-current) and N vendored copies (frozen at their last vendor). Checking
+  only the symlink reports "deployed" while every vendored instance ships the old body.
+  Note the direction: the vendoring gotcha most people reach for is the *opposite* one
+  (a re-vendor clobbering fork-local edits) — that one is about the write, this one is
+  about the write that never happened.
 - **A personal-config edit (`~/.claude`, `~/dotfiles`) must NOT go through
   `upstream-candidates.md`.** That queue is the fork-distribution channel for
   teaching-surface changes only. The personal-config channel is separate — route dotfiles
@@ -90,6 +99,40 @@ Run only the checks whose surface was touched.
   reference dangles when the skill is symlinked or shipped to a fork.
 - *Fork distribution.* Skills reach forks via `bootstrap.sh` `cp -R` on `--update` — so
   the change flows to forks only once committed; note if it is still uncommitted.
+- *Vendored-instance currency (enumerate, don't spot-check).* A canonical skill change is
+  only fully deployed once **every already-vendored copy** of that skill is current. The
+  vendor manifest (`tools/.cms-skills-manifest`, written by `vendor_skills()`) makes those
+  instances enumerable: any repo carrying one was vendored by this corpus and holds frozen
+  bodies. Enumerate them, diff each changed skill against canonical, and list each stale
+  instance as its own `✗` with the re-vendor fix — never sample one repo and generalize.
+
+  ```sh
+  # Search root: sibling repos by default; override with CMS_FORK_ROOT.
+  root="${CMS_FORK_ROOT:-$(dirname "$PWD")}"
+  for m in $(find "$root" -maxdepth 3 -name .cms-skills-manifest 2>/dev/null | sort); do
+    repo=$(dirname "$(dirname "$m")")
+    for skill in <the skills changed this session>; do
+      f="$repo/.claude/skills/$skill/SKILL.md"
+      [ -f "$f" ] || { echo "MISSING $repo $skill"; continue; }
+      cmp -s "$f" "$PWD/.claude/skills/$skill/SKILL.md" || echo "STALE $repo $skill"
+    done
+  done
+  ```
+
+  Fix for each stale repo: `./bootstrap.sh --update <repo>` (re-vendors the managed set;
+  never hand-edit a vendored body — the next vendor overwrites it). Two exclusions keep
+  this honest: a **fork-variant** skill (a `*.fork-overrides.md` sibling in its canonical
+  dir) is not vendored at all — its currency is monition's regen probe, not this diff; and
+  a skill **absent from a repo's manifest** was never shipped there, so `MISSING` is a
+  not-yet-vendored signal, not staleness. This check applies in the canonical upstream,
+  where the vendoring originates; in a downstream fork there is nothing to enumerate.
+- *Read the ✗ count for what it is.* Where the author's machine resolves skills through
+  the global symlink farm (`--link-global`), a **global** skill shadows a same-named
+  project-local one, so a stale vendored copy is inert *for that author* — the frozen body
+  still ships to forkers and to any machine without the farm. So stale instances are a real
+  propagation defect worth fixing, but do not report them as "the skill was not running."
+  If a behavior genuinely never fired, the cause is elsewhere (an env toggle, a hook) —
+  check that before attributing it to staleness.
 
 **Tool (`tools/`)**
 - If the tool is hook-wired, its wiring must be in the committed `.claude/settings.json`
