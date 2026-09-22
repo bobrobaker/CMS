@@ -20,3 +20,9 @@ renders this file (its own skill uses the `forkgen:strip` block instead).
    the single-hub store that reach choice IS the promotion for row-shaped lessons —
    rows live in the shared hub, so queue upstream only what changes the machinery's
    prose (docs, skills, templates), not row content.
+
+   *Want proof a freshly-minted row fires (and reaches a session) before relying on
+   it?* `monition arm-run --only-row <id>` on a natural prompt, verdict via
+   `monition verify-delivery` — clone-isolated, hub-safe, ~2 min. (`monition query`
+   alone can't prove delivery — it's blind to the relevance head.) Details:
+   `monition arm-run --help`.
