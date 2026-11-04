@@ -72,7 +72,7 @@ edited and append anything deferred here, with enough locus to act on it cold.
   `2026-06-18-dolt-default-ours-sqlite-external.md` (whose flip-flop note flagged the
   postmortem). One small follow-on it surfaced: check monition's README/init help for
   any flat "SQLite is the default" lacking the two-audience qualifier.
-- [ ] **cms update vs monition-sync forkgen collision** (found at 2026-07-02 close):
+- [x] **cms update vs monition-sync forkgen collision** (found at 2026-07-02 close):
   `update_target`'s `cp -R .claude/skills/.` overwrote monition's generated fork-variant
   `mine-session/SKILL.md` with CMS's upstream variant; `monition sync` then WARNs
   "locally edited — left alone" and `test_generated_matches_cms_regen` stays red even
@@ -84,8 +84,9 @@ edited and append anything deferred here, with enough locus to act on it cold.
   **[2026-07-12]** This class fired live: the 2026-07-11 fleet drift (stale `mine-session`
   across forks) is exactly this clobber. Detection now exists (`/housekeep §L`, committed
   a05e43e); the *ownership* decision (cms update skips forkgen-swapped skills, or monition sync
-  re-splices after `--update`) is STILL OPEN — §L surfaces the skew but not which variant is
-  correct. The "audit the other four forks" ask was discharged by the 2026-07-12 fleet fix.
+  re-splices after `--update`) ~~is STILL OPEN — §L surfaces the skew but not which variant is
+  correct.~~ **[audited 2026-11-03]** decided 2026-07-03 (`docs/decisions/2026-07-03-fork-variant-skills-monition-owned.md`,
+  cce33c6): `--update` skips fork-variant skills and runs `monition sync`, which owns them. The "audit the other four forks" ask was discharged by the 2026-07-12 fleet fix.
 - [ ] bootstrap.sh:link_global — doesn't exclude fork-variant (`*.fork-overrides.md`-marked)
   skills the way `vendor_skills` does, so a `--link-global` re-run would symlink
   mine-session's raw authoring source (CMS-only step 6, live `forkgen:` markers) into

@@ -32,6 +32,8 @@ here.
 the validation criteria; exit met. Follow-ups that outlived the phase are tracked in
 `docs/debt.md` (post-gate re-measurement, retention-probe age key, deferred postmortem
 eval) — plus reminder row t216 (session_start) for the re-measurement checkpoint.
+**[audited 2026-11-03]** all three follow-ups are closed in `docs/debt.md` and t216 was retired 2026-07-05;
+nothing from Phase 1 remains live.
 
 **Deliverable:** Land the fixes and follow-ups identified by the 2026-07-02
 broad-spectrum system audit, spanning CMS, the monition repo, and dotfiles.

@@ -73,10 +73,13 @@ wholesale, or own a fork variant via `forkgen` (author the canonical source with
   **[2026-07-12]** This gap bit the fleet on 2026-07-11 (a stale unstamped `mine-session` skill).
   Until skills enter the stamp, skill drift is detected out-of-band by `/housekeep §L`
   (`monition instrument --dry-run`), not by this stamp compare.
-- **Producer:** CMS — the canonical stamp is `compute_stamp` over the current CMS checkout's
-  `tools/`.
-- **Consumer:** the drift-warn check (B02) compares the fork's stamp against the canonical
-  reference.
+- **Producer:** CMS — `bootstrap.sh` `compute_stamp` (bash, the sole hash producer) writes the
+  committed canonical `tools/.cms-manifest`; CMS's pre-commit keeps it fresh.
+- **Consumer:** the drift-warn check (B02, `check_stamp_drift`) string-compares the fork's
+  `tools/.cms-version` to `$CMS_SRC/tools/.cms-manifest` — it never recomputes a hash.
+  ~~the canonical stamp is `compute_stamp` over the current CMS checkout's `tools/`~~
+  **[audited 2026-11-03]** REFUTED — reworked per the 2026-06-19 confer (Q3), which removed the Python-side
+  hash; see `docs/workstreams/fleet-standard-propagation/workstream.md` Updates.
 - **Coordinate care:** the stamp identifies the *managed payload*, not the fork's repo or its
   `lint.py` wrapper. A fork editing its local extensions must **not** change the stamp; only
   `cms update` changes it.
@@ -86,7 +89,9 @@ wholesale, or own a fork variant via `forkgen` (author the canonical source with
 How a fork locates the canonical stamp to compare against (degrade gracefully):
 
 1. **`CMS_SRC` env (resolved, B02):** a path to the canonical CMS clone. The drift-check
-   computes `_stamp_of($CMS_SRC/tools)` and compares it to the fork's `tools/.cms-version`.
+   reads `$CMS_SRC/tools/.cms-manifest` and string-compares it to the fork's
+   `tools/.cms-version`. ~~computes `_stamp_of($CMS_SRC/tools)`~~ **[audited 2026-11-03]** REFUTED — no
+   `_stamp_of` exists; the manifest is the reference (same rework as above).
 2. *(future)* `cms update` fetching CMS's published version manifest over the network — not
    built in B01/B02; the local-checkout path above is the v1.
 3. **Disconnected fallback:** `CMS_SRC` unset or its `tools/` missing → the drift-check

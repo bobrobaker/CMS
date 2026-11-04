@@ -60,3 +60,10 @@ outward-facing, their call.
 > standalone decision record for §L is owed once it's exercised in a real scheduled run; until
 > then it's tracked in `docs/debt.md` (the forkgen-collision row), not enshrined as a road.md
 > phase.
+
+> **[2026-11-03 UPDATE]** Scope is now **A–P**. G landed as §G1–G6
+> (`2026-07-05-housekeep-retro-rating-supply.md`, `2026-07-07-cms-side-monition-value-audit-carries.md`)
+> and §N via `2026-08-17-semantic-index-staleness-net-in-housekeep.md`, so "G is deferred" below
+> no longer holds. Cadence is now stamped (`$XDG_STATE_HOME/cms/housekeep.last`) with an `/eos`
+> staleness nag, so "not wired" no longer holds either. The §L decision record promised above
+> was never written; §L has run on its weekly cadence since (2026-11-03 found 10 skewed forks).

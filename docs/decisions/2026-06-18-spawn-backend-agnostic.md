@@ -5,7 +5,9 @@ status: decided
 
 **Decision.** The agent-spawn primitive that CMS ships (the `agent-spawn`-style script
 behind the `/spawn` skill, and the relay layer on top) is **backend-agnostic**: one stable
-`spawn / open / list / kill` contract over pluggable backends. **Superset** is the default
+`spawn / open / list / kill` contract over pluggable backends. **[audited 2026-11-03]** CMS still ships no
+spawn primitive — `/spawn` and `/relay` live in the author's personal config; this contract
+governs it if and when it enters CMS. **Superset** is the default
 *on the home machine only* — auto-detected when its CLI is present and logged in.
 **tmux + `git worktree`** is the portable fallback that runs in any environment (no GUI,
 SSH/phone-safe). Callers are held to the lowest-common-denominator contract; Superset-only

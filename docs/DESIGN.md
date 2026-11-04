@@ -247,9 +247,10 @@ evidence, never built speculatively.
 - **Store-stays-local hygiene** — the store (hub for us; per-repo for a standalone forker)
   stays local and is never published. `bootstrap.sh` apply-to-target now gitignores a
   freshly created per-repo store and ships its pre-commit dump-tracking step commented out
-  (explicit opt-in: uncomment + un-ignore its `dump.sql`). One follow-up remains:
+  (explicit opt-in: uncomment + un-ignore its `dump.sql`). ~~One follow-up remains:
   `monition init` (in the monition repo) still advertises the old unconditional-dump
-  behavior in its own scaffolding — out of scope here, align it separately. (Our hub deliberately keeps a tracked `dump.sql` in the private
+  behavior in its own scaffolding — out of scope here, align it separately.~~ **[audited 2026-11-03]** aligned —
+  `monition init` gates the dump hook behind `--with-dump-hook` (opt-in). (Our hub deliberately keeps a tracked `dump.sql` in the private
   landing-zone repo for offsite backup — that's the opt-in, not the default.) Open sub-question: where a *public*-repo project's store gets backed up — since
   it's gitignored, git no longer backs it up, so a private destination is decided per
   project. (Verified safe meanwhile: the published module bundles no store data, so
