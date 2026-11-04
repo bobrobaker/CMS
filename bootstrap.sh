@@ -281,11 +281,19 @@ update_target() {  # $1 = target path
   # their stamped, domain-stripped deployed form. --update, unlike apply-to-target, never reaches
   # `monition instrument`, so without this a refresh would leave those skills stale. Run monition
   # sync to actually deliver their currency. Fail open if the CLI is absent (hooks fail open too).
+  # Surface what sync did rather than discarding it: it writes the fork's COMMITTED
+  # .claude/settings.json and .mcp.json, and its "locally edited — left alone" WARNs are the
+  # only sign a monition-owned skill was skipped. The assignment must BE the `if` condition —
+  # a standalone `sout=$(…)` aborts under set -e, and `local sout=$(…)` masks the exit status.
+  local sout
   if command -v monition >/dev/null 2>&1; then
-    if monition sync --root "$dst" >/dev/null 2>&1; then
+    if sout="$(monition sync --root "$dst" 2>&1)"; then
       log "refreshed monition-owned skills (mine-session) via monition sync"
+      printf '%s\n' "$sout" | grep -E '^(WARN|merged guarded|registered|installed|upgraded)' \
+        | while IFS= read -r l; do warn "  monition sync: $l"; done || true
     else
       warn "monition sync did not complete — refresh monition-owned skills manually in $dst"
+      printf '%s\n' "$sout" | while IFS= read -r l; do warn "  ! monition sync: $l"; done || true
     fi
   else
     warn "monition CLI absent — monition-owned skills not refreshed (run 'monition sync' in $dst)"

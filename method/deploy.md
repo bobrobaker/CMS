@@ -105,6 +105,15 @@ pre-manifest fork therefore has no authority — its first run deletes nothing a
 the baseline, so the retirement of a skill that predates the manifest is a one-time manual
 removal.
 
+**A fork can retire a still-shipped skill — with a tombstone.** The manifest bounds the
+canonical side's delete authority; it gives the fork none, and a deleted vendored dir is
+re-shipped by the next vendor. A fork retires a skill by deleting the dir **and** writing a
+sibling tombstone where it lived, `.claude/skills/<name>.fork-retired`: the vendor skips the
+copy (logged) and leaves the name out of the manifest. The tombstone alone doesn't delete — a
+dir left in place is never refreshed or removed. Un-retire by deleting the tombstone; the
+canonical side never writes or removes one. A monition-owned skill ignores it (`monition sync`
+reinstalls). See `docs/decisions/2026-08-28-fork-retired-skill-tombstone.md`.
+
 **Monition-owned skills carry their own currency risk.** They reach a fork through monition's
 *baked* regen output, not through the copy above, so an edit to the canonical authoring source
 that never got regenerated leaves `--update` reporting success while shipping the old body —

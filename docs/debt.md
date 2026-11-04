@@ -164,7 +164,7 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   entries, incl. one credited `helpful: 1`? (4) retire t495 (still firing at every
   session start).
 
-- [ ] **Tombstone follow-ups** (from `docs/research/2026-11-03-housekeep-revendor-redteam.md`).
+- [x] **Tombstone follow-ups** — **closed 2026-11-03** (all three landed, red-teamed on Fable; see the commit). (from `docs/research/2026-11-03-housekeep-revendor-redteam.md`).
   (1) `method/deploy.md` §vendoring describes fork-overrides and manifest retirement but
   not `.fork-retired` tombstones. That's a teaching-surface edit, so it goes through the
   proposal gate. (2) deploy-check's vendored-currency probe reports a tombstoned skill,

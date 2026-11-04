@@ -130,6 +130,15 @@ Run only the checks whose surface was touched.
     for skill in <the skills changed this session>; do
       rel=".claude/skills/$skill/SKILL.md"
       canon="$PWD/$rel"
+      # Fork retired it: a tombstone, not a defect.
+      if [ -e "$repo/.claude/skills/$skill.fork-retired" ]; then
+        echo "RETIRED     $repo $skill"; continue
+      fi
+      # No HEAD at all: disk is the only currency signal there is.
+      if ! git -C "$repo" rev-parse -q --verify HEAD >/dev/null 2>&1; then
+        if [ -f "$repo/$rel" ] && cmp -s "$repo/$rel" "$canon"; then d=current; else d=STALE; fi
+        echo "NO-COMMITS  $repo $skill (no HEAD: unborn branch or not a git repo; disk $d)"; continue
+      fi
       # Committed body is the shipped body. Absent from HEAD => never versioned.
       if ! git -C "$repo" show "HEAD:$rel" > "$head_body" 2>/dev/null; then
         echo "UNVERSIONED $repo $skill"; continue
@@ -155,6 +164,12 @@ Run only the checks whose surface was touched.
   - `UNVERSIONED` — the path is not in `HEAD` at all, usually because the repo `.gitignore`s
     `.claude/`. Its skills are current on disk but travel with nobody. Do not `git add -f`
     past a deliberate ignore rule — surface it and let the owner decide.
+  - `RETIRED` — the fork wrote `.claude/skills/<name>.fork-retired`; not a defect, nothing
+    to fix. The name may still appear in the fork's manifest until the next `--update`
+    rewrites it.
+  - `NO-COMMITS` — the repo has no `HEAD` (unborn branch, or not a git repo), so nothing
+    ships from it yet. Report its disk currency; a `STALE` disk copy is fixed by
+    `--update`, with nothing to commit until the repo's owner makes a first commit.
 
   Two exclusions keep this honest: a **fork-variant** skill (a `*.fork-overrides.md` sibling
   in its canonical dir) is not vendored at all — its currency is monition's regen probe, not
