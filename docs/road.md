@@ -97,17 +97,17 @@ criteria above.
 
 ### Phase 2 — machinery-integration eval (layer-1 canary)
 
-`<----- Ongoing phase ----->`
+**Status:** ~~active~~ **complete** (2026-11-03; exit met under fidelity option (B) —
+`docs/decisions/2026-07-03-eval-canary-fidelity.md`. Built 2026-07-03, wired into pre-commit,
+and running weekly via `/housekeep` §K; the unwired-hook catch is demonstrated and test-locked.
+Promoted from candidate 2026-07-03; source: the 2026-07-03 machinery audit, `docs/research/2026-07-03-ai-machinery-audit/synthesis.md` Gap 5).
 
-**Status:** active (promoted from candidate 2026-07-03; source: the 2026-07-03 machinery
-audit, `docs/research/2026-07-03-ai-machinery-audit/synthesis.md` Gap 5).
-
-**Deliverable:** A weekly headless integration canary that programmatically asserts the CMS
+**Deliverable:** A weekly ~~headless~~ integration canary that programmatically asserts the CMS
 machinery's cross-surface wiring is intact — bootstrap/doctor, craft-reminder injection, and
 mine-session routing — and alerts when any task regresses.
 
-**Surfaces:** `tools/` (new canary harness + per-task programmatic assertions); a committed
-baseline fixture; schedule/cron wiring; exercises `bootstrap.sh --doctor`, the craft-reminder
+**Surfaces:** `tools/` (new canary harness + per-task programmatic assertions); ~~a committed
+baseline fixture; schedule/cron wiring~~ **[2026-11-03]** the harness is the baseline; cadence is `/housekeep` §K `--if-due 7`; exercises `bootstrap.sh --doctor`, the craft-reminder
 hook, and the mine-session routing path.
 
 **Design:**
@@ -117,18 +117,18 @@ hook, and the mine-session routing path.
   fork → `--doctor` clean + hooks wired; (2) a session editing governed material receives the
   craft-reminder injection; (3) a synthetic mine-session routes a planted lesson to the
   expected store/kind/reach.
-- Weekly cron; alert when any task fails **twice consecutively** (debounce single flakes).
+- Weekly ~~cron~~ (`/housekeep` §K `--if-due 7`); alert when any task fails **twice consecutively** (debounce single flakes).
 - **Scope honesty:** integration canary — catches wiring/config regressions, not vendor-model
   regressions.
 - **Not fleet currency:** this canary asserts a *single scratch fork's* wiring, not whether
   *existing* forks are current. Fleet machinery skew (the 2026-07-11 incident — forks running
   stale tools/skills) is detected separately by `/housekeep §L "Fork machinery skew"` (added
   2026-07-12). Don't read a green canary as "the fleet is in sync."
-- **Cost control:** headless `claude -p` loads a ~21k-token prefix; strip with `--tools ""` +
-  `--setting-sources project,local` (~150 tokens) — monition t107.
+- ~~**Cost control:** headless `claude -p` loads a ~21k-token prefix; strip with `--tools ""` +
+  `--setting-sources project,local` (~150 tokens) — monition t107.~~ **[2026-11-03]** moot: option (B) runs no live model.
 
-**File/doc changes:** new `tools/` canary harness + assertions; committed baseline fixture;
-cron/schedule entry; a `docs/decisions/` record; `docs/DESIGN.md` registry update.
+**File/doc changes:** new `tools/` canary harness + assertions; ~~committed baseline fixture;
+cron/schedule entry~~ (harness-as-baseline; §K cadence); a `docs/decisions/` record; `docs/DESIGN.md` registry update.
 
 **Validation:** the three tasks run headlessly against the committed baseline and pass; a
 deliberately-broken wiring (unwired hook) is caught before a human notices; runs are debounced
@@ -138,6 +138,11 @@ so a single failure raises no alert.
 
 **Exit:** the three tasks run headlessly on a schedule with a committed baseline, and one
 deliberately-broken wiring (unwired hook) is caught by the canary before a human notices it.
+**[2026-11-03]** met as reconciled in the fidelity decision: scheduled via §K, harness-as-baseline, the
+unwired-hook catch demonstrated (FAIL on run 1, ALERT on run 2) and guarded by
+`tools/test_eval_canary.py`.
+
+No active phase. The next phase is named from `docs/DESIGN.md` Roadmap (forward).
 
 ---
 

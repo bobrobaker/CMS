@@ -15,7 +15,12 @@ loads when**. Two moves:
    not in this skill — it lives in a procedure doc so it can be edited and improved."*
    What the split buys: the procedure is editable mid-session and versioned with the
    corpus; the registered surface never churns; only trigger descriptions are
-   always-on, so the always-on share stays near zero.
+   always-on. That share is small but **budgeted**: the harness reserves a fixed fraction of
+   the context window for the skill listing, and past that budget the least-used skills are
+   listed by name only — their trigger text, the thing that makes them fire, silently drops.
+   Keep descriptions lean for redundancy (never by cutting a sibling-disambiguating NOT
+   clause), and if the installed skill set outgrows the budget, raise the budget in the
+   harness settings rather than trimming triggers until they stop working.
 2. **Early-exit gate before the heavy load.** A skill that can be invoked on the wrong
    kind of input checks the kind *before* loading its procedure — and the check reads
    only the cheap thing (the small input), never the expensive thing it's deciding

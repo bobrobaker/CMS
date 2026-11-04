@@ -183,8 +183,22 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   toward helpful-rate or get excluded (they're identifiable client-side; tell monition if
   you want an `--exclude-synthetic` flag). `trigger_kind` is free-form, not a closed enum.
 
+- [ ] **Contract docs into the architecture-freshness check** (doc audit 2026-11-03). The
+  propagation contract kept documenting a removed symbol (`_stamp_of`) for months.
+  `check_architecture_freshness` already resolves `path` / `path:symbol` spans for docs with
+  `doctype: architecture`; add that frontmatter to `docs/contracts/*.md` (opt-in) and the
+  existing WARN covers them. Bare-symbol resolution stays the audit's job.
+- [ ] **Housekeep probe: checkpoint rows still active long after `not_before`** (doc audit
+  2026-11-03). monition t554 (due 09-27) and t618 (wake 10-05) fired at session start and were
+  ignored for a month, so two Phase-7 gates went unjudged. A §G store probe —
+  `status='active' AND trigger_kind='session_start' AND not_before < today-14` — reports "woke
+  N days ago, still active". It needs the store, so it's a housekeep probe, not a commit lint.
+
 ## Watching (no action needed, just context)
 
+- **road↔DESIGN phase-status mismatch** (doc audit 2026-11-03): a road.md phase marked active
+  while DESIGN.md lists it Landed happened once (Phase 2). Worth a lint only once CMS has more
+  than two phases; forks have no DESIGN.md, so it's CMS-only.
 - [ ] **Scope-creep watch — monition daemons.** `MONITION_SQL_SERVER` +
   `MONITION_EMBED_DAEMON` together mean two resident daemons are now recommended for
   what began as a one-line reminder injector. Documented and opt-in — just watch it,

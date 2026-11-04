@@ -51,17 +51,11 @@ use that machinery or improve it.
   registry. `docs/DESIGN.md` is CMS's live-verdict registry — consult it for *which* call
   currently stands.
 - **Mirror-back sweep.** At the start of a session here (or on request), run
-  `/mirror-back` — it reads the shared upstream-candidates queue, proposes each candidate
-  through the consent gate, and strikes landed candidates in the same pass. **Canonical queue location** (all
-  producers and consumers resolve it this way, so a candidate can't be written to one place
-  and swept from another): `$CMS_LANDING_ZONE/handoffs/upstream-candidates.md` when a
-  landing zone is set — every fork on the shared hub appends there, so one read surfaces
-  *all* forks' candidates — else the fork's own `handoffs/upstream-candidates.md` (a
-  standalone forker with no hub). Producers are `/codify` and a fork's `/mine-session`;
-  consumers are this sweep and `/housekeep` §E. The queue is for **teaching-surface
-  proposals only** — changes to `method/`, skills, `starter/`, or the linter. A
-  trigger-shaped lesson never queues: it goes straight into the shared Monition hub at mine
-  time (`reach: general`) and is already live everywhere.
+  `/mirror-back` — it proposes each queued candidate through the consent gate and strikes
+  landed ones. The queue carries **teaching-surface proposals only** (`method/`, skills,
+  `starter/`, the linter); a trigger-shaped lesson never queues — it goes straight into the
+  shared Monition hub at mine time (`reach: general`). Queue location and its producers:
+  `docs/decisions/2026-07-05-mirror-back-queue-canonical-location.md`.
 - **Rate what fires.** When an injected takeaway helped or was noise, say so:
   `monition rate <firing-id> helpful|noise`. Sparse honest labels beat dense dutiful ones
   — this is the eval data the firing engine will train against.
@@ -71,16 +65,11 @@ use that machinery or improve it.
   don't break flow). Exception: when the moment is an **error flag** and a flag-time
   capture hook is armed in the repo (e.g. `MONITION_FLAG_CAPTURE=1`), invoke the `flag`
   skill instead of appending inline — the inline shortcut skips the skill body and
-  silently drops the armed capture side effects. You are the judge here: full context, free, more reliable than any
-  keyword match — and you are deterministic only if you remember, which under crowded
-  context you won't, so the backstop matters. `tools/autoflag.py` (the Stop hook) is the
-  tier-2 net for what you skip; don't rely on it as the primary path. It has two
-  LLM-free layers: a fixed admitted-error **regex floor**, and a **self-improving
-  lexical layer** (`tools/flag_corpus.py`) that scores the response against a corpus of
-  known flag-worthy phrasings and grows that corpus at mine-time from the manual flags it
-  missed (`/mine-session` step 0d). Routing: admitted error / would-have-prevented-this →
-  `GOVERNANCE`; reusable trigger lesson → `MONITION`; large costly failure → `POSTMORTEM`;
-  otherwise → `GENERAL`. `/mine-session` drains them all at wrap (step 0a).
+  silently drops the armed capture side effects. You are the primary path: the Stop-hook
+  backstop (`tools/autoflag.py`) is a net, not a substitute. Routing: admitted error /
+  would-have-prevented-this → `GOVERNANCE`; reusable trigger lesson → `MONITION`; large
+  costly failure → `POSTMORTEM`; otherwise → `GENERAL`. `/mine-session` drains them all at
+  wrap (step 0a).
 
 ## Workflow
 

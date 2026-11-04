@@ -206,7 +206,7 @@ the held-out relevance set stays live-only; retraining on retro is deferred unti
 accrues. Unblocked by the Monition dogfood (excerpts rich enough to rate). Call + why:
 `docs/decisions/2026-07-05-housekeep-retro-rating-supply.md`.
 
-### Active (2026-07-03) — Phase 2: machinery-integration eval canary (layer-1)
+### Landed (2026-07-03; exit met 2026-11-03) — Phase 2: machinery-integration eval canary (layer-1)
 
 The layer-1 integration canary is **built** (harness `tools/eval_canary.py` + guard
 `tools/test_eval_canary.py`, wired into pre-commit): three programmatic tasks —
