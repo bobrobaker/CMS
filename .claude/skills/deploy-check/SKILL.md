@@ -71,7 +71,8 @@ continue. Never abort the whole run on one failed probe.
 ### 1. Identify the change and classify surfaces
 
 List what changed — working tree *and* the most recent commit if the change was just
-committed (`git status --short`; `git diff --stat HEAD~1` when relevant). Map each touched
+committed (`git status --short`; `git diff --stat HEAD~1` when relevant — never `diff --stat`
+alone: it is blind to untracked files, so newly vendored dirs show only in `status`). Map each touched
 path to a surface:
 
 | Path pattern | Surface |

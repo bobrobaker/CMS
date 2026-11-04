@@ -170,6 +170,17 @@ refresh_manifest() {
 # re-derives (b) from disk and keeps a skill that merely became monition-owned (marker added
 # after it was vendored) from being read as retired. A pre-manifest fork has no manifest, hence
 # no delete authority: the first run deletes nothing and only records the baseline.
+#
+# The manifest path covers CMS-side retirement only. FORK-side retirement — a fork judging a
+# still-shipped skill inert for its context — needs its own durable signal, because cp-only
+# vendoring resurrects a bare deletion on every --update. That signal is a tombstone sibling
+# file the fork writes next to where the skill dir lived: `.claude/skills/<name>.fork-retired`.
+# vendor_skills honors it by skipping the copy (and leaving the skill out of `shipped`, so the
+# manifest stays a truthful record of what THIS vendor shipped). Retire with
+# `rm -rf .claude/skills/<name> && touch .claude/skills/<name>.fork-retired`; un-retire by
+# deleting the tombstone (the next --update re-vendors). Authority stays bounded: the tombstone
+# is the fork exercising control over its own tree — CMS never writes or deletes one.
+# See docs/decisions/2026-08-28-fork-retired-skill-tombstone.md.
 SKILLS_MANIFEST_REL="tools/.cms-skills-manifest"
 vendor_skills() {  # $1 = src root, $2 = dst root
   local src="$1" dst="$2" d name prev shipped=""
@@ -182,7 +193,12 @@ vendor_skills() {  # $1 = src root, $2 = dst root
       log "skipping skill $name — monition sync owns its deployed form (fork-overrides marker)"
       continue
     fi
+    if [ -e "$dst/.claude/skills/$name.fork-retired" ]; then
+      log "skipping skill $name — fork retired it ($name.fork-retired tombstone)"
+      continue
+    fi
     shipped="$shipped$name"$'\n'
+    [ -d "$dst/.claude/skills/$name" ] || log "vendoring NEW skill $name (not previously present in fork)"
     # Copy CONTENTS (`$d` ends in `/`, so `$d.` is the dir's contents) into the dest skill
     # dir, matching the original `skills/.` merge — a per-dir `cp -R "$d" dest` would nest
     # `dest/$name/$name` on a re-run where dest already exists (the --update path).
@@ -260,6 +276,7 @@ update_target() {  # $1 = target path
   fi
   log "managed tools + skills re-vendored; fork-local lint.py and extensions untouched"
   log "(the version stamp covers $MANAGED_TOOLS; skill drift is refreshed but unstamped)"
+  log "review blast radius with: git -C $dst status --porcelain  (diff --stat misses untracked additions)"
   # Fork-variant skills (mine-session) were excluded from the re-vendor above — monition owns
   # their stamped, domain-stripped deployed form. --update, unlike apply-to-target, never reaches
   # `monition instrument`, so without this a refresh would leave those skills stale. Run monition
