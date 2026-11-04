@@ -95,6 +95,13 @@ PATTERNS = [
     r"\bI didn'?t (?:verify|check|test|read|run)\b",
     r"\bI (?:incorrectly|wrongly|falsely) (?:assumed|claimed|stated|said|reported)\b",
     r"\bturns out (?:I was|that was) (?:wrong|mistaken|incorrect)\b",
+    # Item-5 subset (red-team-vetted 2026-07-31, measured 2026-09-09: +2 genuine fires,
+    # 0 new noisy turns over 2056 turns; adopted 2026-11-03). "That's wrong" and
+    # "I presented X as Y" were vetted out as too meta-prone.
+    r"\bI mis-?scoped\b",
+    r"\bmy reasoning was backwards\b",
+    r"\bI need to correct something I told you\b",
+    r"\bthe problem is mine\b(?![-\w])",  # lookahead: not "mine-session"
 ]
 _RX = re.compile("|".join(PATTERNS), re.IGNORECASE)
 

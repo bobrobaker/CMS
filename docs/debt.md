@@ -144,7 +144,7 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   Remaining: monition's ~19-day export-firings doc-citation ask (deferred pending
   labeled-trace volume, per its own note).
 
-- [ ] **mine-session §0c → evidence-contract rater relay** (routed from the landing-zone
+- [ ] **mine-session §0c → evidence-contract rater relay** — **approved 2026-11-03, queued as its own build session** (routed from the landing-zone
   handoff "2026-08-26 monition eos-rater-relay-for-cms", 2026-11-03). Monition shipped the
   machinery + relay spec (authority: monition `docs/contracts/evidence-contract-rating.md`
   §Relay, §Host shapes); CMS owns the skill edit, still undone — §0c is the in-context
@@ -154,7 +154,7 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   --transcript <path>`; a VOID batch writes nothing and is never retried by editing
   evidence. mine-session is monition-owned (fork-overrides), so verify the regen path
   before editing. Verify the spec against monition@main first — the envelope is 2+ months old.
-- [ ] **autoflag recall: Item-5 regex subset, threshold, t495 retirement** (routed from
+- [x] **autoflag recall: Item-5 regex subset, threshold, t495 retirement** — **decided 2026-11-03** (`docs/decisions/2026-11-03-autoflag-recall-tuning.md`: Item-5 applied, threshold kept at 0.4, 5 FP entries demerited, t495 retired). (routed from
   the landing-zone handoff "night-report-2026-09-09", 2026-11-03; full report in the
   landing zone's inbox, "2026-09-09 night eval — autoflag backstop recall re-measurement (t495)").
   t495's trigger is met (corpus has helpful>0 entries) and the re-measure ran: recall ≈48%

@@ -341,6 +341,19 @@ e0 = (_time.monotonic() - t0) * 1000
 check("T20 budget_ms=0 returns immediately", e0 < 50 and r is None, f"{e0:.0f}ms {r}")
 
 shutil.rmtree(tmp)
+
+# Item-5 regex subset (adopted 2026-11-03): pure-pattern checks on the module's _RX.
+import autoflag as _af
+for txt, want in [
+    ("I mis-scoped it, and you paid for that", True),
+    ("I misscoped the backfill", True),
+    ("My reasoning was backwards here", True),
+    ("I need to correct something I told you earlier", True),
+    ("Your suspicion was right, and the problem is mine.", True),
+    ("the problem is mine-session's step 0c", False),
+    ("That's wrong", False),
+]:
+    check(f"T-item5 {txt[:32]!r} -> {want}", bool(_af._RX.search(txt)) == want)
 print()
 print("FAILURES:", fails if fails else "none")
 sys.exit(1 if fails else 0)
