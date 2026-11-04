@@ -50,10 +50,20 @@ monition firings, not /flag bookmarks.)
    - When capturing: append a `> Fork-coordinate:` line to the flag entry with
      the session id + current transcript record count
      (`wc -l < ~/.claude/projects/<slug>/$CLAUDE_CODE_SESSION_ID.jsonl`), then
-     snapshot the repo state: `rsync -a --exclude .venv <repo>/
-     ~/.claude/p7-captures/<repo-basename>-<UTC-timestamp>/` and append
-     `> Snapshot: <that path>` too. Cost: disk-only, ~5s on a ~0.5GB repo
-     (incremental if the dir exists); no tokens. Skip silently (with a
+     snapshot the repo state, letting the repo's own `.gitignore` decide what is
+     reconstructible bulk (a fixed exclude list can't track per-repo data dirs):
+     ```
+     rsync -a \
+       --filter='+ /.claude/***' --filter='+ /handoffs/***' \
+       --filter='+ /monition/' --filter='+ /monition/store.db' \
+       --filter=':- .gitignore' \
+       --exclude .venv --exclude node_modules --exclude __pycache__ \
+       <repo>/ ~/.claude/p7-captures/<repo-basename>-<UTC-timestamp>/
+     ```
+     The force-includes keep the load-bearing gitignored surfaces; untracked-but-not-
+     ignored dirty state still copies. Append `> Snapshot: <that path>` too. Cost:
+     disk-only (measured 276MB → 30MB on a large repo once filtered; incremental if
+     the dir exists); no tokens. Skip silently (with a
      `> Snapshot: SKIPPED <reason>` line) if the repo can't be resolved.
    - Rationale: retroactive reconstruction of repo state leaks the future (VCS
      history, artifact coherence); flag-time capture is the only fidelity path.

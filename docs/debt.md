@@ -173,6 +173,15 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   (3) `--update` runs `monition sync` with its output discarded while sync rewrites
   committed `settings.json`/`.mcp.json`. Consider surfacing its warnings instead.
 
+- [ ] **P3 must consume the `export-firings` contract** (routed 2026-11-03 from the
+  upstream-candidates queue; past its own 2026-11-01 expiry with P3 unstarted). When the
+  tier-3 (P3) harness is built: cite monition `docs/contracts/export-firings.md` (v1)
+  instead of duplicating it; confirm its field list matches what P3 consumes (additive
+  columns need no version bump); and decide whether `trigger_kind=resurrection` firings
+  — synthetic helpful-equivalents injected by the suppression-resurrection gate — count
+  toward helpful-rate or get excluded (they're identifiable client-side; tell monition if
+  you want an `--exclude-synthetic` flag). `trigger_kind` is free-form, not a closed enum.
+
 ## Watching (no action needed, just context)
 
 - [ ] **Scope-creep watch — monition daemons.** `MONITION_SQL_SERVER` +

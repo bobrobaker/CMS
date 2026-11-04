@@ -21,6 +21,9 @@ future behavior, so the gate is absolute: **never write before explicit acceptan
      wired to your vault. *Test: the domain-and-environment strip.*
    - **This project** — neither; specific to the repo you're in. → step 2.
 
+   Classify by the **resolved** path (`readlink -f`), not the invoked one — a symlinked
+   file can live in a different layer than the path you reached it by.
+
 2. **Route to the form** within that layer — run the route-to-form ladder in
    `method/lesson-routing.md` (tests 2–4, first decisive wins): an **owning surface**
    that already fires at the right moment (a skill's lean `SKILL.md` gate or a

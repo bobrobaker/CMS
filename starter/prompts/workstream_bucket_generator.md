@@ -6,6 +6,7 @@ The goal of this prompt is to produce actual markdown files for a multi-session 
 2. Produce as many bucket files as needed: each bucket is a short-session cluster of tasks with shared concept, edit surface, and validation.
 3. Before finalizing, internally stress-test:
    - Are bucket boundaries based on context, not arbitrary feature count?
+   - Is every surface listed in the source roadmap phase mapped to a bucket, or explicitly deferred with a reason?
    - Is any parent content actually bucket-local?
    - Are any buckets too large for one session?
    - Are required touchpoints minimal and sufficient?

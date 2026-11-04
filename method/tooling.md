@@ -23,6 +23,10 @@ loads when**. Two moves:
    heavy doc fires after the cost is paid), and **state the saving as a number** in
    the skill text — a quantified gate is a load-bearing decision a future editor won't
    "simplify" away.
+3. **Defaults, not decrees.** A shared skill phrases its rules as defaults and checks for
+   project overrides first; a project records an override in a decision doc naming the
+   exact skill clauses, plus a one-line pointer in its always-loaded `CLAUDE.md` so the
+   override is seen before the skill's default is followed.
 
 A skill registered at user level can load its procedure from a hub repo by absolute
 path — one skill, one procedure doc, firable from any project.

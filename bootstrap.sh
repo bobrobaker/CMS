@@ -924,12 +924,15 @@ ROOT="$(git rev-parse --show-toplevel)"
 python3 "$ROOT/tools/lint.py" || exit 1
 # Store-stays-local by default (docs/DESIGN.md "Store-stays-local hygiene"): a per-repo
 # monition/ store is gitignored and NOT auto-dumped/tracked here. Tracking a dump.sql
-# backup is an explicit opt-in — uncomment below (and drop monition/dump.sql from
-# .gitignore) if you want this repo's pre-commit to git-track a derived dump:
+# backup is an explicit opt-in — uncomment below if you want this repo's pre-commit to
+# git-track a derived dump. Track the GZIPPED form and keep plain dump.sql ignored: git
+# hosts reject single files over 100MB, and a store dump crosses that (one hit 107MB;
+# gzipped it was 4.3MB). Add monition/dump.sql.gz to tracking, not monition/dump.sql:
 #   if [ -d "$ROOT/monition/.dolt" ] || [ -f "$ROOT/monition/store.db" ]; then
 #     command -v monition >/dev/null 2>&1 \
 #       && monition dump >/dev/null 2>&1 \
-#       && git -C "$ROOT" add monition/dump.sql 2>/dev/null
+#       && gzip -nc "$ROOT/monition/dump.sql" > "$ROOT/monition/dump.sql.gz" \
+#       && git -C "$ROOT" add monition/dump.sql.gz 2>/dev/null
 #   fi
 exit 0
 HOOK

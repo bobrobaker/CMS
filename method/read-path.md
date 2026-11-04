@@ -23,6 +23,11 @@ must be the cheapest operation that answers the question.
 - **Know your file shapes.** One line of a JSONL log can be tens of KB: read a
   specific line, never stream a range; check whether an extraction script exists
   before reading any raw log.
+- **Docs a subagent reads in full hold current state only, each fact once.** A design
+  doc or spec that a generator consumes whole carries no history: resolved items,
+  superseded calls, and direction logs move to a sibling file read on pointer, and
+  unratified drafts sit in a labelled non-binding pool, never in the live tables — or the
+  reader treats placeholders as real.
 
 Three meta-rules govern the set itself: hygiene rules are first-class always-on
 content (they apply every session — that's the always-on test); each rule names the

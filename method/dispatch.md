@@ -133,6 +133,10 @@ changed, validation results *with exit codes and output* — the architect revie
 evidence, not the implementer's claim that tests passed — issues, proposed follow-ups
 (proposals only; the implementer never writes to the registry).
 
+A verdict that enters a roadmap, scoreboard, or exit check gets a **fresh** reviewer, not a
+long-reused adviser — independence decays with reuse. Reviews of ingest or build steps can
+be non-blocking instead of skipped.
+
 Design points: isolation is **structural, not behavioral** (the implementer physically
 can't touch the main checkout); apply checks base-commit drift; read-only **scout**
 tasks reuse the same contract for reconnaissance; capture the diff from what the
@@ -156,6 +160,10 @@ and source drift, with the two iterating in a bounded loop until the buckets are
 right. This is the reverse direction from the above (critique flowing *up* into the
 plan, not work flowing *down*) and needs a turn-based relay substrate the one-shot
 task contract here doesn't provide. Flagged as its home when built.
+
+**Stopping needs a named class.** A user's "check / verify / review" request is a task, not
+an approval gate. Halt only for a named reason — taste, scope, an irreversible step, a broken
+premise — and even then, independent buckets keep running.
 
 ## Decision-ready handoffs
 
