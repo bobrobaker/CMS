@@ -143,6 +143,27 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   Remaining: monition's ~19-day export-firings doc-citation ask (deferred pending
   labeled-trace volume, per its own note).
 
+- [ ] **mine-session §0c → evidence-contract rater relay** (routed from the brain2
+  handoff "2026-08-26 monition eos-rater-relay-for-cms", 2026-11-03). Monition shipped the
+  machinery + relay spec (authority: monition `docs/contracts/evidence-contract-rating.md`
+  §Relay, §Host shapes); CMS owns the skill edit, still undone — §0c is the in-context
+  LLM pass, no `monition rate --contract`. Shape: export the session's unrated firings →
+  fork rater subagent (sonnet; prompt from `rate_protocol.render_rater_prompt`) →
+  `rate_protocol.build_batch` plants controls → `monition rate --contract batch.json
+  --transcript <path>`; a VOID batch writes nothing and is never retried by editing
+  evidence. mine-session is monition-owned (fork-overrides), so verify the regen path
+  before editing. Verify the spec against monition@main first — the envelope is 2+ months old.
+- [ ] **autoflag recall: Item-5 regex subset, threshold, t495 retirement** (routed from
+  the brain2 handoff "night-report-2026-09-09", 2026-11-03; full report in brain2
+  `00 Inbox/2026-09-09 night eval — autoflag backstop recall re-measurement (t495).md`).
+  t495's trigger is met (corpus has helpful>0 entries) and the re-measure ran: recall ≈48%
+  upper bound; Item-5 subset +2 genuine / 0 new noise, but both catches come from two
+  contaminated meta sessions (b7b8ef0e, c36be3eb). Decisions: (1) apply Item-5 to
+  `tools/autoflag.py`? (2) lexical threshold 0.4 → 0.45 (drops 5/6 FPs, costs 2 hits —
+  t495 froze threshold moves; arguably liftable now)? (3) demerit FP-producing corpus
+  entries, incl. one credited `helpful: 1`? (4) retire t495 (still firing at every
+  session start).
+
 ## Watching (no action needed, just context)
 
 - [ ] **Scope-creep watch — monition daemons.** `MONITION_SQL_SERVER` +

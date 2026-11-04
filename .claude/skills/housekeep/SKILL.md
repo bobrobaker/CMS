@@ -45,13 +45,19 @@ that clone, resolve it through the skill-farm symlink instead of silently skippi
 ```bash
 root=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -f "$root/archive/backfill.py" ] || root=$(readlink -f ~/.claude/skills/housekeep 2>/dev/null | sed 's|/\.claude/skills/housekeep$||')
-[ -f "$root/archive/backfill.py" ] && python3 "$root/archive/backfill.py" --dry-run 2>/dev/null \
+[ -f "$root/archive/backfill.py" ] && python3 "$root/archive/backfill.py" --dry-run 2>&1 >/dev/null \
   | sed -n '/^backfill:/,$p'   # the count + per-project breakdown, not the per-session lines
 ```
 
 The `sed` is not cosmetic: it removes the per-session lines from view entirely, so the
 only number you can read is the one the tool computed. Do not replace it with
 `head`/`tail` — those show you rows to count, which is the failure this guards.
+
+The redirect order is load-bearing too: `backfill.py` prints its whole summary to
+**stderr**, so `2>&1 >/dev/null` routes stderr into the pipe and drops stdout. A
+`2>/dev/null` here discards the summary and the step reads as nothing-to-backfill on
+every run. **Empty output is not clean** — the tool always prints a `backfill:` line
+when it exits, so no line means the pipe or the tool failed; say so, never report zero.
 
 The dry run extracts and filters every candidate before counting, so it takes minutes on
 a wide `--days` window rather than returning instantly. **Let it exit.** A count taken
@@ -513,8 +519,11 @@ indexing touches these files, so every mtime reads recent regardless of true age
 
 ```bash
 python3 - <<'EOF' 2>/dev/null
-import json, os, glob, datetime
+import json, os, glob, datetime, re
 cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=60)
+# wrapped = has an archive summary; the summary filename ends in the session id
+wrapped = {m.group(1) for f in os.listdir(os.path.expanduser("~/.claude/logs/sessions"))
+           for m in [re.search(r"([0-9a-f]{8}-[0-9a-f-]{27})\.md$", f)] if m}
 old, total = [], 0
 for p in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
     total += 1
@@ -529,15 +538,24 @@ for p in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
                     break
     except Exception:
         pass
+w = [p for p in old if os.path.basename(p)[:-6] in wrapped]
+scratch = [p for p in old if p not in w and "-scratch" in os.path.dirname(p)]
 print(f"{len(old)} of {total} transcripts >60d by first-record timestamp")
+print(f"  prunable (wrapped): {len(w)}; unwrapped scratch: {len(scratch)}; "
+      f"unwrapped real (never prune): {len(old) - len(w) - len(scratch)}")
 EOF
 du -sh -- ~/.claude/projects 2>/dev/null | cut -f1
 ```
 
-A large count → **propose** pruning those transcripts, excluding any session probe
-A's `--dry-run` still lists as unwrapped (wrap first, then prune). State in the
-proposal that a pruned session keeps its archive summary + index entry but loses the
-raw-text retrieval rung.
+A large **prunable** count → **propose** pruning the wrapped transcripts, stating the
+three numbers the script printed. A pruned wrapped session keeps its archive summary +
+index entry but loses the raw-text retrieval rung. Unwrapped scratch transcripts
+(`*-scratch` project dirs) are a separate, opt-in line. **Never propose pruning an
+unwrapped real transcript** — it has no summary, so deletion is total loss. Do not
+borrow §A's unwrapped list as the safeguard: §A looks back `--days 14` and this probe
+targets >60d, so that list protects none of the prune set (2026-11-03: it would have
+let 6778 unsummarised transcripts be deleted). Auto mode's classifier blocks these
+deletes even with every path named — hand the user a `!` command, don't retry.
 
 ### K — Machinery-integration eval canary (weekly, CMS repos)
 
@@ -743,6 +761,10 @@ du -sh -- ~/.claude/p7-captures 2>/dev/null | cut -f1
 
 Dirs older than ~30 days have usually outlived the replay experiment that wanted them —
 list them with sizes and ask; the user knows whether a replay gate still needs one.
+Age by the timestamp in the dir **name**, not `-mtime` alone: the snapshot copy keeps
+the repo's old mtimes, so a capture made today can still match `-mtime +30` — drop any
+whose name-date is recent. On accept, auto mode's classifier blocks the `rm -r` even
+with every dir named — hand the user a `!` command rather than retrying.
 Directory absent → silent.
 
 ### P — Machine-health logs (weekly, report-only)
