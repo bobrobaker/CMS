@@ -164,6 +164,15 @@ into a roadmap phase or acted on. Each carries the context that justified surfac
   entries, incl. one credited `helpful: 1`? (4) retire t495 (still firing at every
   session start).
 
+- [ ] **Tombstone follow-ups** (from `docs/research/2026-11-03-housekeep-revendor-redteam.md`).
+  (1) `method/deploy.md` §vendoring describes fork-overrides and manifest retirement but
+  not `.fork-retired` tombstones. That's a teaching-surface edit, so it goes through the
+  proposal gate. (2) deploy-check's vendored-currency probe reports a tombstoned skill,
+  and a repo with no commits (cardstate), as UNVERSIONED with a gitignore explanation,
+  which is the wrong diagnosis in both cases. Teach it to recognize those states.
+  (3) `--update` runs `monition sync` with its output discarded while sync rewrites
+  committed `settings.json`/`.mcp.json`. Consider surfacing its warnings instead.
+
 ## Watching (no action needed, just context)
 
 - [ ] **Scope-creep watch — monition daemons.** `MONITION_SQL_SERVER` +

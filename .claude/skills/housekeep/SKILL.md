@@ -522,7 +522,8 @@ python3 - <<'EOF' 2>/dev/null
 import json, os, glob, datetime, re
 cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=60)
 # wrapped = has an archive summary; the summary filename ends in the session id
-wrapped = {m.group(1) for f in os.listdir(os.path.expanduser("~/.claude/logs/sessions"))
+sd = os.path.expanduser("~/.claude/logs/sessions")   # no archive → nothing counts as wrapped
+wrapped = {m.group(1) for f in (os.listdir(sd) if os.path.isdir(sd) else [])
            for m in [re.search(r"([0-9a-f]{8}-[0-9a-f-]{27})\.md$", f)] if m}
 old, total = [], 0
 for p in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
