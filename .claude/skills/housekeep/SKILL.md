@@ -160,10 +160,13 @@ delete (work died) / promote to durable doc (became a runbook) / route the work 
 target repo's `road.md`/`debt.md` then delete the envelope (real but unstarted — a
 handoff is a transfer envelope, not a backlog) / do the pick-up (genuinely imminent).
 
-Caveat on delete: `handoffs/` is gitignored, so an `rm` here is permanent (not
-git-recoverable) — and the harness's auto-mode blocks an unnamed `rm` issued under a
-general housekeep authorization. Name the specific file when proposing deletion, or
-prefer the non-destructive `mv` to `handoffs/archive/`.
+Caveat on delete: whether an `rm` is recoverable depends on the repo — `handoffs/` is
+gitignored in some repos and tracked in others, and even where tracked, a never-committed
+handoff is gone for good. Check (`git check-ignore`, `git ls-files`) and say which when
+proposing. The harness's auto-mode also blocks an unnamed `rm` issued under a general
+housekeep authorization, so name the specific file. Don't `mv` a plain handoff to
+`handoffs/archive/` as a softer delete — that folder is for confer threads (§D), and
+parking handoffs there just relocates the pile.
 
 ### D — Stale confer threads
 

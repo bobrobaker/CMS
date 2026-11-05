@@ -17,8 +17,9 @@ blocking and never acted on without a yes:
   ```
   If it prints, suggest a `/housekeep` (morning cadence) in one line — don't run it.
 - **Handoff consume-check** — if this session picked up, consumed, or resolved a
-  handoff doc, close its lifecycle now (delete it, or archive with a stamp per
-  `handoff/SKILL.md`); a consumed handoff left `status: open` is exactly the pile the
+  handoff doc, close its lifecycle now: delete it per `handoff/SKILL.md` §Lifecycle
+  (only a confer thread archives, with a stamp, per `confer/SKILL.md` — a plain handoff
+  never goes to `handoffs/archive/`); a consumed handoff left `status: open` is exactly the pile the
   consume-then-delete rule exists to prevent. Skip silently if none was touched.
 
 Then run these three in order, pausing between each — don't batch them, since each can
