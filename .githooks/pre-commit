@@ -17,6 +17,8 @@ python3 "$ROOT/tools/test_deploy_settings.py" >/dev/null || { python3 "$ROOT/too
 python3 "$ROOT/tools/test_craft_reminder.py" >/dev/null || { python3 "$ROOT/tools/test_craft_reminder.py"; exit 1; }
 # Behavioral guard for the SessionEnd token-counting hook (summing, marker dedup, fail-open).
 python3 "$ROOT/tools/test_session_tokens.py" >/dev/null || { python3 "$ROOT/tools/test_session_tokens.py"; exit 1; }
+# Guard the archive summariser contract (transcript framing, no-title rejection, retry/failure modes).
+python3 "$ROOT/tools/test_backfill.py" >/dev/null || { python3 "$ROOT/tools/test_backfill.py"; exit 1; }
 # Guard the eval-canary's pure logic: doctor-parse, the unwired-hook catch, twice-consecutive debounce.
 python3 "$ROOT/tools/test_eval_canary.py" >/dev/null || { python3 "$ROOT/tools/test_eval_canary.py"; exit 1; }
 # Correctness guard for the two doc-currency probes (two-headed decision doc; gated-vs-shipped),
